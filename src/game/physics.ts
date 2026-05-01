@@ -100,7 +100,7 @@ export function updatePhysics(dt: number, input: InputCommand) {
     const relSpeed = vLen(vSub(p.vel, state.ball.vel));
     
     // Magnet
-    if (distToBall < 18 && relSpeed < 60) {
+    if (distToBall < 32 && relSpeed < 300) {
       state.ball.lastTouchedBy = p.id;
       state.ball.lastTouchTeam = p.team;
       p.lastTouchTime = Date.now();
