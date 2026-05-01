@@ -135,7 +135,7 @@ export function render(ctx: CanvasRenderingContext2D) {
   {
     const b = state.ball;
     const scale = b.z;
-    const size = 48 * scale;
+    const size = 72 * scale;
     const yOffset = (scale - 1) * -40;
     if (assets.ball) {
       ctx.drawImage(assets.ball, b.pos.x - size/2, b.pos.y - size/2 + yOffset, size, size);
@@ -175,6 +175,9 @@ export function render(ctx: CanvasRenderingContext2D) {
   // Minimap
   drawMiniMap(ctx);
 
+  // Controls HUD (bottom-left)
+  drawControls(ctx);
+
   if (state.matchState === 'KICKOFF') {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 72px sans-serif';
@@ -209,6 +212,31 @@ function drawGoal(ctx: CanvasRenderingContext2D, team: 'BLUE'|'RED', x: number, 
     ctx.lineTo(x + GOAL_DEPTH, y + i*22.5);
   }
   ctx.stroke();
+}
+
+function drawControls(ctx: CanvasRenderingContext2D) {
+  const controls = [
+    { key: '↑↓←→ / WASD', action: 'Hareket' },
+    { key: 'Shift',        action: 'Sprint' },
+    { key: 'Space / J',   action: 'Pas' },
+    { key: 'X / K',       action: 'Şut' },
+    { key: 'Q / Tab',     action: 'Oyuncu değiştir' },
+    { key: 'Esc',         action: 'Duraklat' },
+  ];
+  const x0 = 12, y0 = PITCH_H - 12 - controls.length * 18;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(x0 - 4, y0 - 14, 230, controls.length * 18 + 8);
+  ctx.font = 'bold 13px monospace';
+  controls.forEach((c, i) => {
+    const y = y0 + i * 18;
+    ctx.fillStyle = '#ffe066';
+    ctx.textAlign = 'left';
+    ctx.fillText(c.key, x0, y);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(` — ${c.action}`, x0 + 100, y);
+  });
+  ctx.restore();
 }
 
 function drawMiniMap(ctx: CanvasRenderingContext2D) {

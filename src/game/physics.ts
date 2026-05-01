@@ -72,6 +72,8 @@ export function updatePhysics(dt: number, input: InputCommand) {
       }
     }
   }
+  // Re-clamp after repulsion (repulsion can push players outside field)
+  state.players.forEach(p => clampToField(p));
 
   // 3. Ball physics
   state.ball.vel = vMul(state.ball.vel, BALL_FRICTION);
@@ -203,21 +205,27 @@ function clampToField(p: Player) {
 function handleOutOfBounds() {
   const b = state.ball.pos;
   const inGoalY = b.y > GOAL_TOP_Y && b.y < GOAL_BOTTOM_Y;
-  
+  const BOUNCE = 0.75;
+  const MIN_BOUNCE_SPEED = 80;
+
   if (b.x < FIELD_LEFT && !inGoalY) {
       b.x = FIELD_LEFT;
-      state.ball.vel.x *= -0.5;
+      state.ball.vel.x = Math.abs(state.ball.vel.x) * BOUNCE;
+      if (state.ball.vel.x < MIN_BOUNCE_SPEED) state.ball.vel.x = MIN_BOUNCE_SPEED;
   } else if (b.x > FIELD_RIGHT && !inGoalY) {
       b.x = FIELD_RIGHT;
-      state.ball.vel.x *= -0.5;
+      state.ball.vel.x = -Math.abs(state.ball.vel.x) * BOUNCE;
+      if (state.ball.vel.x > -MIN_BOUNCE_SPEED) state.ball.vel.x = -MIN_BOUNCE_SPEED;
   }
-  
+
   if (b.y < FIELD_TOP) {
       b.y = FIELD_TOP;
-      state.ball.vel.y *= -0.5;
+      state.ball.vel.y = Math.abs(state.ball.vel.y) * BOUNCE;
+      if (state.ball.vel.y < MIN_BOUNCE_SPEED) state.ball.vel.y = MIN_BOUNCE_SPEED;
   } else if (b.y > FIELD_BOTTOM) {
       b.y = FIELD_BOTTOM;
-      state.ball.vel.y *= -0.5;
+      state.ball.vel.y = -Math.abs(state.ball.vel.y) * BOUNCE;
+      if (state.ball.vel.y > -MIN_BOUNCE_SPEED) state.ball.vel.y = -MIN_BOUNCE_SPEED;
   }
 }
 
