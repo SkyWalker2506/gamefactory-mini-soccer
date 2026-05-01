@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a3a1a" />
+    <title>Mini Soccer 3v3</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; padding: 0; height: 100%; background: #0a1410; color: #f1f5f9; overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      #root { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+      #stage { position: relative; background: #000; box-shadow: 0 0 60px rgba(0,0,0,0.6); }
+      canvas { display: block; image-rendering: pixelated; image-rendering: -moz-crisp-edges; }
+      .ui-layer { position: absolute; inset: 0; pointer-events: none; }
+      .ui-layer > * { pointer-events: auto; }
+      .hidden { display: none !important; }
+      button { font: inherit; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="stage">
+        <canvas id="game-canvas" width="1280" height="720"></canvas>
+        <div id="ui-root" class="ui-layer"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
