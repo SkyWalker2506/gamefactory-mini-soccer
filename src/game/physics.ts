@@ -59,14 +59,21 @@ export function updatePhysics(dt: number, input: InputCommand) {
     clampToField(p);
   });
   
-  // Anti-clumping repulsion
+  // Anti-clumping repulsion (skip opposing tackler vs ball carrier so tackle range is reachable)
+  const carrierId = state.ball.lastTouchedBy;
   for (let i = 0; i < state.players.length; i++) {
     for (let j = i + 1; j < state.players.length; j++) {
       const p1 = state.players[i];
       const p2 = state.players[j];
+
+      if (carrierId !== null && p1.team !== p2.team &&
+          (p1.id === carrierId || p2.id === carrierId)) {
+        continue;
+      }
+
       const dist = vDist(p1.pos, p2.pos);
-      if (dist < 70 && dist > 0) {
-        const repulse = vMul(vNorm(vSub(p1.pos, p2.pos)), (70 - dist) * 10 * dt);
+      if (dist < 48 && dist > 0) {
+        const repulse = vMul(vNorm(vSub(p1.pos, p2.pos)), (48 - dist) * 6 * dt);
         p1.pos = vAdd(p1.pos, repulse);
         p2.pos = vSub(p2.pos, repulse);
       }
@@ -123,14 +130,16 @@ export function updatePhysics(dt: number, input: InputCommand) {
     if (state.ball.lastTouchedBy !== null && state.ball.lastTouchedBy !== p.id) {
         const carrier = state.players.find(x => x.id === state.ball.lastTouchedBy);
         if (carrier && carrier.team !== p.team) {
-            if (vDist(p.pos, carrier.pos) < 22) {
-                // Check if from side/behind (dot product of carrier facing and tackler pos relative to carrier)
+            if (vDist(p.pos, carrier.pos) < 32) {
                 const toTackler = vNorm(vSub(p.pos, carrier.pos));
                 const dot = carrier.facing.x * toTackler.x + carrier.facing.y * toTackler.y;
-                if (dot < 0.5) { // not directly in front
+                if (dot < 0.85) {
                     state.ball.lastTouchedBy = null;
-                    state.ball.vel = vMul(carrier.facing, 200);
-                    state.ball.pos = vAdd(carrier.pos, vMul(carrier.facing, 30));
+                    // Knock the ball loose past the tackler so the carrier's magnet doesn't re-grab it
+                    const knockDir = vNorm(vSub(p.pos, carrier.pos));
+                    state.ball.vel = vMul(knockDir, 260);
+                    state.ball.pos = vAdd(carrier.pos, vMul(knockDir, 42));
+                    p.lastTouchTime = Date.now();
                     playSfx("tackle");
                 }
             }
