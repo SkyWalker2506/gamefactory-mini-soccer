@@ -34,6 +34,7 @@ export function updatePhysics(dt: number, input: InputCommand) {
         state.players.forEach(pl => pl.isHuman = false);
         state.players[bestId].isHuman = true;
         state.humanPlayerId = bestId;
+        state.switchCooldown = 0.3; // prevent immediate re-override of manual picks
       }
     }
     
@@ -149,12 +150,9 @@ export function updatePhysics(dt: number, input: InputCommand) {
         }
       }
     } else {
-      // Out of range — reset touch window timer
-      if (distToBall >= 20 || relSpeed >= 300) {
-        // Only reset if they're clearly out of the window zone
-        if (distToBall > 30) {
-          p.touchWindowTimer = 0.15; // 150ms window on next approach
-        }
+      // Out of range — reset touch window so next approach requires full 150ms
+      if (distToBall > 22 || relSpeed >= 300) {
+        p.touchWindowTimer = 0.15;
       }
     }
     
@@ -246,27 +244,22 @@ function clampToField(p: Player) {
 function handleOutOfBounds() {
   const b = state.ball.pos;
   const inGoalY = b.y > GOAL_TOP_Y && b.y < GOAL_BOTTOM_Y;
-  const BOUNCE = 0.75;
-  const MIN_BOUNCE_SPEED = 80;
+  const BOUNCE = 0.6;
 
   if (b.x < FIELD_LEFT && !inGoalY) {
       b.x = FIELD_LEFT;
       state.ball.vel.x = Math.abs(state.ball.vel.x) * BOUNCE;
-      if (state.ball.vel.x < MIN_BOUNCE_SPEED) state.ball.vel.x = MIN_BOUNCE_SPEED;
   } else if (b.x > FIELD_RIGHT && !inGoalY) {
       b.x = FIELD_RIGHT;
       state.ball.vel.x = -Math.abs(state.ball.vel.x) * BOUNCE;
-      if (state.ball.vel.x > -MIN_BOUNCE_SPEED) state.ball.vel.x = -MIN_BOUNCE_SPEED;
   }
 
   if (b.y < FIELD_TOP) {
       b.y = FIELD_TOP;
       state.ball.vel.y = Math.abs(state.ball.vel.y) * BOUNCE;
-      if (state.ball.vel.y < MIN_BOUNCE_SPEED) state.ball.vel.y = MIN_BOUNCE_SPEED;
   } else if (b.y > FIELD_BOTTOM) {
       b.y = FIELD_BOTTOM;
       state.ball.vel.y = -Math.abs(state.ball.vel.y) * BOUNCE;
-      if (state.ball.vel.y > -MIN_BOUNCE_SPEED) state.ball.vel.y = -MIN_BOUNCE_SPEED;
   }
 }
 

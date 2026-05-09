@@ -4,6 +4,9 @@ const activeKeys = new Set<string>();
 const singleFrameKeys = new Set<string>();
 
 window.addEventListener("keydown", (e) => {
+  if (["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+    e.preventDefault();
+  }
   activeKeys.add(e.code);
   if (!e.repeat) {
     singleFrameKeys.add(e.code);
