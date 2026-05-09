@@ -121,22 +121,40 @@ export function updatePhysics(dt: number, input: InputCommand) {
   state.players.forEach(p => {
     const distToBall = vDist(p.pos, state.ball.pos);
     const relSpeed = vLen(vSub(p.vel, state.ball.vel));
-    
-    // Magnet
-    if (distToBall < 32 && relSpeed < 300) {
-      state.ball.lastTouchedBy = p.id;
-      state.ball.lastTouchTeam = p.team;
-      p.lastTouchTime = Date.now();
-      
-      const dribbleOffset = vAdd(p.pos, vMul(p.facing, 18));
-      state.ball.pos = dribbleOffset;
-      state.ball.vel = p.vel;
-      
-      // Auto-switch to possessor
-      if (p.team === 'BLUE' && !p.isHuman) {
-        if (state.humanPlayerId !== null) state.players[state.humanPlayerId].isHuman = false;
-        p.isHuman = true;
-        state.humanPlayerId = p.id;
+
+    // Touch window: player must be in range for 150ms before gaining possession
+    if (distToBall < 20 && relSpeed < 300) {
+      // Currently in range — countdown touch window
+      if (p.touchWindowTimer > 0) {
+        p.touchWindowTimer -= dt;
+      } else {
+        // Window elapsed — grant possession
+        state.ball.lastTouchedBy = p.id;
+        state.ball.lastTouchTeam = p.team;
+        p.lastTouchTime = Date.now();
+
+        const dribbleOffset = vAdd(p.pos, vMul(p.facing, 18));
+        const lerpFactor = Math.min(1, dt * 20); // smooth snap over ~50ms
+        state.ball.pos = {
+          x: state.ball.pos.x + (dribbleOffset.x - state.ball.pos.x) * lerpFactor,
+          y: state.ball.pos.y + (dribbleOffset.y - state.ball.pos.y) * lerpFactor,
+        };
+        state.ball.vel = p.vel;
+
+        // Auto-switch to possessor
+        if (p.team === 'BLUE' && !p.isHuman) {
+          if (state.humanPlayerId !== null) state.players[state.humanPlayerId].isHuman = false;
+          p.isHuman = true;
+          state.humanPlayerId = p.id;
+        }
+      }
+    } else {
+      // Out of range — reset touch window timer
+      if (distToBall >= 20 || relSpeed >= 300) {
+        // Only reset if they're clearly out of the window zone
+        if (distToBall > 30) {
+          p.touchWindowTimer = 0.15; // 150ms window on next approach
+        }
       }
     }
     
@@ -343,7 +361,7 @@ export function executeShoot(p: Player) {
     p.state = 'SHOOT';
     setTimeout(() => p.state = 'IDLE', 200);
     
-    state.cameraShake = 0.1;
+    state.cameraShake = 0.04;
     playSfx("kick");
 }
 

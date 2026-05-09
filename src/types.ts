@@ -30,6 +30,7 @@ export interface Player {
   animTimer: number;
   spriteName: 'idle' | 'up' | 'down' | 'right' | 'left' | 'shoot';
   lastTouchTime: number;
+  touchWindowTimer: number;
 }
 
 export interface Ball {

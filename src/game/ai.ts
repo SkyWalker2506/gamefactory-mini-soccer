@@ -16,39 +16,51 @@ export function updateAI(dt: number) {
                 decideAction(p);
             }
         });
+        // Soft separation: no two teammates within 80px should target same spot
+        applyTeammateSeparation();
+    }
+}
+
+function applyTeammateSeparation() {
+    const teams: Array<'BLUE' | 'RED'> = ['BLUE', 'RED'];
+    for (const team of teams) {
+        const teammates = state.players.filter(p => p.team === team && !p.isHuman);
+        for (let i = 0; i < teammates.length; i++) {
+            for (let j = i + 1; j < teammates.length; j++) {
+                const a = teammates[i];
+                const b = teammates[j];
+                const dist = vDist(a.pos, b.pos);
+                if (dist < 80 && dist > 0) {
+                    const push = vMul(vNorm(vSub(a.pos, b.pos)), (80 - dist) * 0.5);
+                    a.vel = vAdd(a.vel, push);
+                    b.vel = vSub(b.vel, push);
+                }
+            }
+        }
     }
 }
 
 function assignRoles() {
-    const possessor = state.ball.lastTouchTeam; // 'BLUE' | 'RED' | null
-    if (possessor === null) {
-        // Loose ball: closest player on each team chases (PRESSURER), others hold formation
+    // Ball is loose if no player currently has possession (lastTouchedBy === null)
+    const isLoose = state.ball.lastTouchedBy === null;
+    if (isLoose) {
         assignLooseBallRoles('BLUE');
         assignLooseBallRoles('RED');
     } else {
-        assignTeamRoles('BLUE', possessor === 'BLUE');
-        assignTeamRoles('RED',  possessor === 'RED');
+        const possessorTeam = state.players.find(p => p.id === state.ball.lastTouchedBy)?.team ?? null;
+        assignTeamRoles('BLUE', possessorTeam === 'BLUE');
+        assignTeamRoles('RED',  possessorTeam === 'RED');
     }
 }
 
 function assignLooseBallRoles(team: 'BLUE' | 'RED') {
     const teamPlayers = state.players.filter(p => p.team === team);
-    let closest: Player | null = null;
-    let minDist = Infinity;
-    teamPlayers.forEach(p => {
-        const d = vDist(p.pos, state.ball.pos);
-        if (d < minDist) { minDist = d; closest = p; }
-    });
-    let sweeperAssigned = false;
-    teamPlayers.forEach(p => {
-        if (p === closest) {
-            p.role = 'PRESSURER';
-        } else if (!sweeperAssigned) {
-            p.role = 'SWEEPER';
-            sweeperAssigned = true;
-        } else {
-            p.role = 'MARKER';
-        }
+    // Sort by distance to ball
+    const sorted = [...teamPlayers].sort((a, b) => vDist(a.pos, state.ball.pos) - vDist(b.pos, state.ball.pos));
+    sorted.forEach((p, i) => {
+        if (i === 0) p.role = 'PRESSURER';       // closest → sprint to ball
+        else if (i === 1) p.role = 'LANE_RUNNER_2'; // second → receiving position behind ball
+        else p.role = 'SWEEPER';                    // third → defensive position
     });
 }
 
@@ -126,28 +138,60 @@ function decideAction(p: Player) {
             p.vel = vMul(aimDir, 180);
         }
     } else if (p.role.startsWith('LANE_RUNNER')) {
+        // When ball is loose, LANE_RUNNER_2 acts as a receiving position behind the ball
+        if (state.ball.lastTouchedBy === null && p.role === 'LANE_RUNNER_2') {
+            const dirX = p.team === 'BLUE' ? 1 : -1;
+            // Hold 150px behind ball (toward own goal side) as second ball receiver
+            const anchor = v2(state.ball.pos.x - dirX * 150, state.ball.pos.y);
+            anchor.x = Math.max(FIELD_LEFT + 30, Math.min(FIELD_RIGHT - 30, anchor.x));
+            anchor.y = Math.max(FIELD_TOP + 30, Math.min(FIELD_BOTTOM - 30, anchor.y));
+            p.vel = vMul(vNorm(vSub(anchor, p.pos)), 160);
+        } else {
         const carrier = state.players.find(x => x.role === 'BALL_CARRIER' && x.team === p.team);
         if (carrier) {
             const dirX = p.team === 'BLUE' ? 1 : -1;
-            const offsetY = p.role === 'LANE_RUNNER_1' ? -120 : 120;
-            const anchor = v2(carrier.pos.x + 200 * dirX, carrier.pos.y + offsetY);
-            
+            let anchor;
+            if (p.role === 'LANE_RUNNER_1') {
+                // Advanced position on OPPOSITE side of carrier — width play, ahead of ball
+                const carrierSideY = carrier.pos.y;
+                const oppositeLaneY = carrierSideY < 360 ? 560 : 160; // push to opposite lane
+                const advanceX = carrier.pos.x + dirX * 200; // 150-250px ahead toward goal
+                anchor = v2(advanceX, oppositeLaneY);
+            } else {
+                // LANE_RUNNER_2: support position slightly behind carrier, offset perpendicular
+                const offsetY = carrier.pos.y < 360 ? 100 : -100; // same general area but offset
+                anchor = v2(carrier.pos.x - dirX * 80, carrier.pos.y + offsetY);
+            }
+
             // Clamp anchor
-            anchor.x = Math.max(FIELD_LEFT, Math.min(FIELD_RIGHT, anchor.x));
-            anchor.y = Math.max(FIELD_TOP, Math.min(FIELD_BOTTOM, anchor.y));
-            
+            anchor.x = Math.max(FIELD_LEFT + 30, Math.min(FIELD_RIGHT - 30, anchor.x));
+            anchor.y = Math.max(FIELD_TOP + 30, Math.min(FIELD_BOTTOM - 30, anchor.y));
+
             p.vel = vMul(vNorm(vSub(anchor, p.pos)), 180);
         }
+        } // end else (carrier block)
     } else if (p.role === 'PRESSURER') {
-        // Move to point between ball and goal
-        const ballToGoal = vNorm(vSub(v2(ownGoalX, 360), state.ball.pos));
-        const targetPos = vAdd(state.ball.pos, vMul(ballToGoal, 25));
+        // If ball is loose, sprint directly to ball; otherwise intercept between ball and own goal
+        const isLoose = state.ball.lastTouchedBy === null;
+        let targetPos;
+        if (isLoose) {
+            targetPos = { x: state.ball.pos.x, y: state.ball.pos.y };
+        } else {
+            const ballToGoal = vNorm(vSub(v2(ownGoalX, 360), state.ball.pos));
+            targetPos = vAdd(state.ball.pos, vMul(ballToGoal, 25));
+        }
         p.vel = vMul(vNorm(vSub(targetPos, p.pos)), 250); // sprint
     } else if (p.role === 'SWEEPER') {
-        const targetPos = v2(ownGoalX + (p.team === 'BLUE' ? 200 : -200), 360);
+        // Position centrally between ball and own goal
+        const midX = (state.ball.pos.x + ownGoalX) / 2;
+        const midY = (state.ball.pos.y + 360) / 2;
+        const targetPos = v2(
+            Math.max(FIELD_LEFT + 40, Math.min(FIELD_RIGHT - 40, midX)),
+            Math.max(FIELD_TOP + 40, Math.min(FIELD_BOTTOM - 40, midY))
+        );
         p.vel = vMul(vNorm(vSub(targetPos, p.pos)), 180);
     } else if (p.role === 'MARKER') {
-        // Mark most threatening
+        // Mark most dangerous opponent who is NOT the ball carrier — stay within 40px
         let bestEnemy: Player | null = null;
         let minDist = 9999;
         for (const enemy of state.players) {
@@ -157,9 +201,14 @@ function decideAction(p: Player) {
             }
         }
         if (bestEnemy) {
-            const dirX = p.team === 'BLUE' ? -1 : 1;
-            const targetPos = v2(bestEnemy.pos.x + dirX * 30, bestEnemy.pos.y);
-            p.vel = vMul(vNorm(vSub(targetPos, p.pos)), 180);
+            const toEnemy = vSub(bestEnemy.pos, p.pos);
+            const distToEnemy = vLen(toEnemy);
+            if (distToEnemy > 40) {
+                p.vel = vMul(vNorm(toEnemy), 200);
+            } else {
+                // Closely shadowing — move with enemy
+                p.vel = vMul(vNorm(toEnemy), 80);
+            }
         } else {
             p.vel = v2(0,0);
         }
