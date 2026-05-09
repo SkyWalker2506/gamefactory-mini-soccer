@@ -108,18 +108,12 @@ export function resetPositionsForKickoff(kickingTeam: 'BLUE' | 'RED') {
     redPositions[0].x = 660;
   }
   
-  state.players.forEach(p => {
-    p.vel = {x: 0, y: 0};
-    p.state = 'IDLE';
-    p.isSprinting = false;
-    if (p.team === 'BLUE') {
-      p.pos = {...bluePositions[p.id]};
-      p.facing = {x: 1, y: 0};
-    } else {
-      p.pos = {...redPositions[p.id - 3]};
-      p.facing = {x: -1, y: 0};
-    }
-  });
+  const bluePlayers = state.players.filter(p => p.team === 'BLUE');
+  const redPlayers  = state.players.filter(p => p.team === 'RED');
+
+  state.players.forEach(p => { p.vel = {x: 0, y: 0}; p.state = 'IDLE'; p.isSprinting = false; });
+  bluePlayers.forEach((p, i) => { p.pos = {...bluePositions[i]}; p.facing = {x: 1, y: 0}; });
+  redPlayers.forEach((p, i)  => { p.pos = {...redPositions[i]};  p.facing = {x: -1, y: 0}; });
   
   if (state.players[0].team === 'BLUE') {
     state.humanPlayerId = 0;

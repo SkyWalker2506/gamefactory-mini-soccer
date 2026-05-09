@@ -147,7 +147,7 @@ export function render(ctx: CanvasRenderingContext2D) {
   {
     const b = state.ball;
     const scale = b.z;
-    const size = 72 * scale;
+    const size = 48 * scale;
     const yOffset = (scale - 1) * -40;
     if (assets.ball) {
       ctx.drawImage(assets.ball, b.pos.x - size/2, b.pos.y - size/2 + yOffset, size, size);
@@ -238,7 +238,7 @@ function drawControls(ctx: CanvasRenderingContext2D) {
   const x0 = 12, y0 = PITCH_H - 12 - controls.length * 18;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fillRect(x0 - 4, y0 - 14, 230, controls.length * 18 + 8);
+  ctx.fillRect(x0 - 4, y0 - 14, 255, controls.length * 18 + 8);
   ctx.font = 'bold 13px monospace';
   controls.forEach((c, i) => {
     const y = y0 + i * 18;
@@ -246,7 +246,7 @@ function drawControls(ctx: CanvasRenderingContext2D) {
     ctx.textAlign = 'left';
     ctx.fillText(c.key, x0, y);
     ctx.fillStyle = '#fff';
-    ctx.fillText(` — ${c.action}`, x0 + 100, y);
+    ctx.fillText(` — ${c.action}`, x0 + 115, y);
   });
   ctx.restore();
 }

@@ -80,7 +80,7 @@ function assignTeamRoles(team: 'BLUE' | 'RED', hasBall: boolean) {
         }
         
         teamPlayers.forEach(p => {
-            if (p.id === carrierId) p.role = 'BALL_CARRIER';
+            if (p.id === carrierId && (!p.isHuman || state.ball.lastTouchedBy === p.id)) p.role = 'BALL_CARRIER';
             else if (!teamPlayers.find(x => x.role === 'LANE_RUNNER_1')) p.role = 'LANE_RUNNER_1';
             else p.role = 'LANE_RUNNER_2';
         });

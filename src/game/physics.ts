@@ -124,7 +124,7 @@ export function updatePhysics(dt: number, input: InputCommand) {
     const relSpeed = vLen(vSub(p.vel, state.ball.vel));
 
     // Touch window: player must be in range for 150ms before gaining possession
-    if (distToBall < 20 && relSpeed < 300) {
+    if (distToBall < 20 && relSpeed < 300 && state.ball.z <= 1.05) {
       // Currently in range — countdown touch window
       if (p.touchWindowTimer > 0) {
         p.touchWindowTimer -= dt;
