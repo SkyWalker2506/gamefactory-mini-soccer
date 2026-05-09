@@ -13,13 +13,27 @@ export function updatePhysics(dt: number, input: InputCommand) {
   if (state.humanPlayerId !== null && state.players[state.humanPlayerId]) {
     const p = state.players[state.humanPlayerId];
     
-    // Auto-switch override
-    if (input.switchPlayer && state.switchCooldown <= 0 && state.ball.lastTouchTeam !== 'BLUE') {
+    // Tab: manually cycle through BLUE team players
+    if (input.switchPlayer && state.switchCooldown <= 0) {
+      const bluePlayers = state.players.filter(pl => pl.team === 'BLUE');
+      const currentIdx = bluePlayers.findIndex(pl => pl.id === state.humanPlayerId);
+      const nextIdx = (currentIdx + 1) % bluePlayers.length;
+      const nextPlayer = bluePlayers[nextIdx];
+      if (nextPlayer && nextPlayer.id !== state.humanPlayerId) {
+        state.players.forEach(pl => pl.isHuman = false);
+        nextPlayer.isHuman = true;
+        state.humanPlayerId = nextPlayer.id;
+        state.switchCooldown = 0.3;
+      }
+    }
+
+    // Auto-select: when ball is free (no possession), switch to closest BLUE player
+    if (state.ball.lastTouchedBy === null && state.switchCooldown <= 0) {
       const bestId = getClosestTeammateToBall('BLUE');
       if (bestId !== null && bestId !== state.humanPlayerId) {
+        state.players.forEach(pl => pl.isHuman = false);
+        state.players[bestId].isHuman = true;
         state.humanPlayerId = bestId;
-        state.players.forEach(pl => pl.isHuman = pl.id === state.humanPlayerId);
-        state.switchCooldown = 2.0;
       }
     }
     

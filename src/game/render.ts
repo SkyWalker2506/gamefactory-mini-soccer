@@ -114,19 +114,30 @@ export function render(ctx: CanvasRenderingContext2D) {
           }
         }
       }
-      // Human indicator
+      // Human indicator: highlight ring + arrow above
       if (p.isHuman) {
+        // Yellow selection ring
         ctx.strokeStyle = '#ffff00';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(p.pos.x, p.pos.y - 20, 8, 0, Math.PI * 2);
+        ctx.arc(p.pos.x, p.pos.y, 18, 0, Math.PI * 2);
         ctx.stroke();
-        
+
+        // Small downward arrow above player
+        const ax = p.pos.x, ay = p.pos.y - 42;
+        ctx.fillStyle = '#ffff00';
+        ctx.beginPath();
+        ctx.moveTo(ax, ay + 10);       // arrow tip
+        ctx.lineTo(ax - 7, ay);        // left wing
+        ctx.lineTo(ax + 7, ay);        // right wing
+        ctx.closePath();
+        ctx.fill();
+
         // Stamina bar
         ctx.fillStyle = '#000';
-        ctx.fillRect(p.pos.x - 15, p.pos.y - 30, 30, 4);
+        ctx.fillRect(p.pos.x - 15, p.pos.y - 34, 30, 4);
         ctx.fillStyle = '#ffff00';
-        ctx.fillRect(p.pos.x - 15, p.pos.y - 30, 30 * (p.stamina / 100), 4);
+        ctx.fillRect(p.pos.x - 15, p.pos.y - 34, 30 * (p.stamina / 100), 4);
       }
     }
   });
