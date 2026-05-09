@@ -147,7 +147,7 @@ export function render(ctx: CanvasRenderingContext2D) {
   {
     const b = state.ball;
     const scale = b.z;
-    const size = 48 * scale;
+    const size = 96 * scale;
     const yOffset = (scale - 1) * -40;
     if (assets.ball) {
       ctx.drawImage(assets.ball, b.pos.x - size/2, b.pos.y - size/2 + yOffset, size, size);

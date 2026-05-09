@@ -105,7 +105,7 @@ export function updatePhysics(dt: number, input: InputCommand) {
   
   // Z trajectory visual
   if (state.ball.z > 1) {
-      state.ball.z -= dt * 0.4;
+      state.ball.z -= dt * 2.5; // fast descent — lands in ~80ms
       if (state.ball.z < 1) state.ball.z = 1;
   }
   
@@ -134,13 +134,9 @@ export function updatePhysics(dt: number, input: InputCommand) {
         state.ball.lastTouchTeam = p.team;
         p.lastTouchTime = Date.now();
 
-        const dribbleOffset = vAdd(p.pos, vMul(p.facing, 18));
-        const lerpFactor = Math.min(1, dt * 20); // smooth snap over ~50ms
-        state.ball.pos = {
-          x: state.ball.pos.x + (dribbleOffset.x - state.ball.pos.x) * lerpFactor,
-          y: state.ball.pos.y + (dribbleOffset.y - state.ball.pos.y) * lerpFactor,
-        };
+        // Match velocity only — no position snap to avoid teleportation
         state.ball.vel = p.vel;
+        state.ball.z = 1; // ground the ball on pickup
 
         // Auto-switch to possessor
         if (p.team === 'BLUE' && !p.isHuman) {
