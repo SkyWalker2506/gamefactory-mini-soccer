@@ -60,7 +60,7 @@ export function triggerGoal(scoringTeam: 'BLUE' | 'RED') {
   if (state.matchState === 'GOAL') return;
   state.matchState = 'GOAL';
   state.goalFreezeTimer = 1.5;
-  state.cameraShake = 0.2;
+  state.cameraShake = 0.12;
   
   if (scoringTeam === 'BLUE') {
     state.score.blue++;

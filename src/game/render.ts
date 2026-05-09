@@ -16,10 +16,11 @@ export function render(ctx: CanvasRenderingContext2D) {
     return;
   }
 
-  // Camera shake
+  // Camera shake — magnitude scales with remaining duration, max ±2px
   if (state.cameraShake > 0) {
-    const dx = (Math.random() - 0.5) * 6;
-    const dy = (Math.random() - 0.5) * 6;
+    const mag = Math.min(state.cameraShake, 1) * 2;
+    const dx = (Math.random() - 0.5) * mag;
+    const dy = (Math.random() - 0.5) * mag;
     ctx.translate(dx, dy);
   }
 

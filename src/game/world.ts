@@ -49,14 +49,14 @@ export function initWorld(initialSeed: number) {
       id: i, team: 'BLUE', pos: v2(400, 360 + (i-1)*100), vel: v2(0, 0), facing: v2(1, 0),
       stamina: 100, isSprinting: false, sprintCooldown: false, state: 'IDLE', stateTimer: 0,
       role: i === 0 ? 'BALL_CARRIER' : (i === 1 ? 'LANE_RUNNER_1' : 'LANE_RUNNER_2'),
-      roleAnchor: v2(0,0), isHuman: i === 0, animTimer: 0, spriteName: 'idle', lastTouchTime: 0
+      roleAnchor: v2(0,0), isHuman: i === 0, animTimer: 0, spriteName: 'idle', lastTouchTime: 0, touchWindowTimer: 0
     });
   }
   for (let i = 0; i < 3; i++) {
     state.players.push({
       id: 3+i, team: 'RED', pos: v2(880, 360 + (i-1)*100), vel: v2(0, 0), facing: v2(-1, 0),
       stamina: 100, isSprinting: false, sprintCooldown: false, state: 'IDLE', stateTimer: 0,
-      role: 'PRESSURER', roleAnchor: v2(0,0), isHuman: false, animTimer: 0, spriteName: 'idle', lastTouchTime: 0
+      role: 'PRESSURER', roleAnchor: v2(0,0), isHuman: false, animTimer: 0, spriteName: 'idle', lastTouchTime: 0, touchWindowTimer: 0
     });
   }
   state.humanPlayerId = 0;
