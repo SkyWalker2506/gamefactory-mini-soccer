@@ -124,8 +124,18 @@ export async function preloadAndTintAssets(): Promise<void> {
     loadImage(ASSET_PATHS.slideBlue).catch(() => null),
     loadImage(ASSET_PATHS.slideRed).catch(() => null),
   ]);
-  if (sbImg) assets.slideBlue = await sliceSheet(sbImg, sbImg.width, sbImg.height, 8);
-  if (srImg) assets.slideRed  = await sliceSheet(srImg, srImg.width, srImg.height, 8);
+  if (sbImg) assets.slideBlue = await sliceSheetEqual(sbImg, 8);
+  if (srImg) assets.slideRed  = await sliceSheetEqual(srImg, 8);
+}
+
+async function sliceSheetEqual(img: HTMLImageElement, frames: number): Promise<ImageBitmap[]> {
+  const fw = Math.floor(img.width / frames);
+  const fh = img.height;
+  const out: ImageBitmap[] = [];
+  for (let i = 0; i < frames; i++) {
+    out.push(await createImageBitmap(img, i * fw, 0, fw, fh));
+  }
+  return out;
 }
 
 export function playSfx(_name: string): void {
