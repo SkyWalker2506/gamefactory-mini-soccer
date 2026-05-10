@@ -83,18 +83,23 @@ export function render(ctx: CanvasRenderingContext2D) {
   entities.forEach(e => {
     if (e.type === 'player') {
       const p = e.obj;
-      // Slide sprite (single-frame), rotated to facing direction
+      // Slide sprite (8-frame sheet, side-view, faces +X)
       if (p.state === 'SLIDE') {
-        const slideImg = p.team === 'BLUE' ? assets.slideBlue : assets.slideRed;
-        if (slideImg) {
+        const frames = p.team === 'BLUE' ? assets.slideBlue : assets.slideRed;
+        if (frames && frames.length > 0) {
+          // Play full sequence over slide duration (~0.5s) — clamp to last frame
+          const progress = Math.min(1, p.animTimer / 0.5);
+          const idx = Math.min(frames.length - 1, Math.floor(progress * frames.length));
+          const sprite = frames[idx];
           const targetH = 60;
           const dh = targetH;
-          const dw = slideImg.width / slideImg.height * dh;
-          const angle = Math.atan2(p.facing.y, p.facing.x); // sprite assumed to face +X
+          const dw = sprite.width / sprite.height * dh;
+          // Use facing.x to determine flip; for pure up/down slides default to right
+          const flipX = p.facing.x < -0.01;
           ctx.save();
           ctx.translate(p.pos.x, p.pos.y - 6);
-          ctx.rotate(angle);
-          ctx.drawImage(slideImg, -dw / 2, -dh / 2, dw, dh);
+          if (flipX) ctx.scale(-1, 1);
+          ctx.drawImage(sprite, -dw / 2, -dh / 2, dw, dh);
           ctx.restore();
         } else {
           // Fallback: streak under player to show motion

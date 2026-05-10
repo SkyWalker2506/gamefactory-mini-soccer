@@ -21,8 +21,8 @@ export const assets: {
   ball: HTMLImageElement | null;
   blue: SpriteSet | null;
   red: SpriteSet | null;
-  slideBlue: HTMLImageElement | null;
-  slideRed: HTMLImageElement | null;
+  slideBlue: ImageBitmap[] | null;
+  slideRed: ImageBitmap[] | null;
 } = { field: null, ball: null, blue: null, red: null, slideBlue: null, slideRed: null };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -119,13 +119,13 @@ export async function preloadAndTintAssets(): Promise<void> {
   assets.blue = { up: up.blue, down: down.blue, right: right.blue, shoot: shoot.blue };
   assets.red = { up: up.red, down: down.red, right: right.red, shoot: shoot.red };
 
-  // Optional slide sprites — load if present, ignore if missing
-  const [sb, sr] = await Promise.all([
+  // Optional slide sprite sheets — 8 frames horizontally
+  const [sbImg, srImg] = await Promise.all([
     loadImage(ASSET_PATHS.slideBlue).catch(() => null),
     loadImage(ASSET_PATHS.slideRed).catch(() => null),
   ]);
-  assets.slideBlue = sb;
-  assets.slideRed = sr;
+  if (sbImg) assets.slideBlue = await sliceSheet(sbImg, sbImg.width, sbImg.height, 8);
+  if (srImg) assets.slideRed  = await sliceSheet(srImg, srImg.width, srImg.height, 8);
 }
 
 export function playSfx(_name: string): void {
