@@ -35,6 +35,11 @@ function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
+  // Permissive CORS so the game (vite on a different port) can fetch the manifest
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type');
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   const url = new URL(req.url, 'http://x');
 
   // === API ===

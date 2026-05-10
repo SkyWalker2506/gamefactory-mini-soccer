@@ -25,6 +25,27 @@ export const assets: {
   slideRed: ImageBitmap[] | null;
 } = { field: null, ball: null, blue: null, red: null, slideBlue: null, slideRed: null };
 
+// Optional asset-browser manifest — when running with the asset-browser dev server,
+// fetch override frame definitions so the editor and the game stay in sync.
+const ASSET_BROWSER_URL = "http://localhost:4567/manifest.json";
+type ManifestFrame = { x: number; y: number; w: number; h: number };
+type ManifestItem = { name: string; frames?: ManifestFrame[]; cols?: number; rows?: number; fps?: number };
+let manifestCache: Record<string, ManifestItem> | null = null;
+async function loadManifest(): Promise<Record<string, ManifestItem>> {
+  if (manifestCache) return manifestCache;
+  try {
+    const res = await fetch(ASSET_BROWSER_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    manifestCache = {};
+    for (const it of data.items || []) manifestCache[it.name] = it;
+    return manifestCache;
+  } catch {
+    manifestCache = {};
+    return manifestCache;
+  }
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -94,10 +115,29 @@ async function sliceSheet(source: CanvasImageSource, totalW: number, totalH: num
   return out;
 }
 
-async function buildSpritePair(url: string, frames: number): Promise<{ blue: ImageBitmap[]; red: ImageBitmap[] }> {
+async function sliceByOverride(source: CanvasImageSource, override: ManifestItem, totalH: number): Promise<ImageBitmap[]> {
+  if (override.frames && override.frames.length) {
+    return Promise.all(override.frames.map(f => createImageBitmap(source, f.x, f.y, f.w, f.h)));
+  }
+  // Fall through — caller handles
+  return [];
+}
+
+async function buildSpritePair(url: string, fallbackFrames: number, name?: string): Promise<{ blue: ImageBitmap[]; red: ImageBitmap[] }> {
   const img = await loadImage(url);
   const w = img.width, h = img.height;
   const redCanvas = recolorBlueToRed(img);
+  const manifest = await loadManifest();
+  const override = name ? manifest[name] : null;
+  let frames = fallbackFrames;
+  if (override?.frames && override.frames.length) {
+    const [blue, red] = await Promise.all([
+      sliceByOverride(img, override, h),
+      sliceByOverride(redCanvas, override, h),
+    ]);
+    return { blue, red };
+  }
+  if (override?.cols) frames = override.cols;
   const [blue, red] = await Promise.all([
     sliceSheet(img, w, h, frames),
     sliceSheet(redCanvas, w, h, frames),
@@ -109,10 +149,10 @@ export async function preloadAndTintAssets(): Promise<void> {
   const [field, ball, up, down, right, shoot] = await Promise.all([
     loadImage(ASSET_PATHS.field),
     loadImage(ASSET_PATHS.ball),
-    buildSpritePair(ASSET_PATHS.up, 8),
-    buildSpritePair(ASSET_PATHS.down, 8),
-    buildSpritePair(ASSET_PATHS.right, 8),
-    buildSpritePair(ASSET_PATHS.shoot, 6),
+    buildSpritePair(ASSET_PATHS.up, 8, "running-up-nonbg"),
+    buildSpritePair(ASSET_PATHS.down, 8, "running-down-nonbg"),
+    buildSpritePair(ASSET_PATHS.right, 8, "running-right-nonbg"),
+    buildSpritePair(ASSET_PATHS.shoot, 6, "shoot-right-nonbg"),
   ]);
   assets.field = field;
   assets.ball = ball;
@@ -124,8 +164,17 @@ export async function preloadAndTintAssets(): Promise<void> {
     loadImage(ASSET_PATHS.slideBlue).catch(() => null),
     loadImage(ASSET_PATHS.slideRed).catch(() => null),
   ]);
-  if (sbImg) assets.slideBlue = await sliceSheetByGaps(sbImg, 8);
-  if (srImg) assets.slideRed  = await sliceSheetByGaps(srImg, 8);
+  const manifest = await loadManifest();
+  async function sliceSlide(img: HTMLImageElement | null, name: string): Promise<ImageBitmap[] | null> {
+    if (!img) return null;
+    const ov = manifest[name];
+    if (ov?.frames && ov.frames.length) {
+      return Promise.all(ov.frames.map(f => createImageBitmap(img, f.x, f.y, f.w, f.h)));
+    }
+    return sliceSheetByGaps(img, ov?.cols || 8);
+  }
+  assets.slideBlue = await sliceSlide(sbImg, "slide-blue");
+  assets.slideRed  = await sliceSlide(srImg, "slide-red");
 }
 
 async function sliceSheetByGaps(img: HTMLImageElement, expectedFrames: number): Promise<ImageBitmap[]> {
