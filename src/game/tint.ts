@@ -27,23 +27,28 @@ export const assets: {
 
 // Optional asset-browser manifest — when running with the asset-browser dev server,
 // fetch override frame definitions so the editor and the game stay in sync.
-const ASSET_BROWSER_URL = "http://localhost:4567/manifest.json";
+// Try the baked-at-build copy first (works in production), then the running
+// asset-browser dev server for hot iteration.
+const MANIFEST_URLS = ["./asset-manifest.json", "http://localhost:4567/manifest.json"];
 type ManifestFrame = { x: number; y: number; w: number; h: number };
 type ManifestItem = { name: string; frames?: ManifestFrame[]; cols?: number; rows?: number; fps?: number };
 let manifestCache: Record<string, ManifestItem> | null = null;
 async function loadManifest(): Promise<Record<string, ManifestItem>> {
   if (manifestCache) return manifestCache;
-  try {
-    const res = await fetch(ASSET_BROWSER_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error(String(res.status));
-    const data = await res.json();
-    manifestCache = {};
-    for (const it of data.items || []) manifestCache[it.name] = it;
-    return manifestCache;
-  } catch {
-    manifestCache = {};
-    return manifestCache;
+  for (const url of MANIFEST_URLS) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      const data = await res.json();
+      manifestCache = {};
+      for (const it of data.items || []) manifestCache[it.name] = it;
+      return manifestCache;
+    } catch {
+      // try next
+    }
   }
+  manifestCache = {};
+  return manifestCache;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
