@@ -124,16 +124,51 @@ export async function preloadAndTintAssets(): Promise<void> {
     loadImage(ASSET_PATHS.slideBlue).catch(() => null),
     loadImage(ASSET_PATHS.slideRed).catch(() => null),
   ]);
-  if (sbImg) assets.slideBlue = await sliceSheetEqual(sbImg, 8);
-  if (srImg) assets.slideRed  = await sliceSheetEqual(srImg, 8);
+  if (sbImg) assets.slideBlue = await sliceSheetByGaps(sbImg, 8);
+  if (srImg) assets.slideRed  = await sliceSheetByGaps(srImg, 8);
 }
 
-async function sliceSheetEqual(img: HTMLImageElement, frames: number): Promise<ImageBitmap[]> {
-  const fw = Math.floor(img.width / frames);
-  const fh = img.height;
+async function sliceSheetByGaps(img: HTMLImageElement, expectedFrames: number): Promise<ImageBitmap[]> {
+  const w = img.width, h = img.height;
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  const cx = cv.getContext("2d", { willReadFrequently: true })!;
+  cx.drawImage(img, 0, 0);
+  const data = cx.getImageData(0, 0, w, h).data;
+
+  // Detect filled columns (any pixel with alpha > 8)
+  const filled: boolean[] = new Array(w);
+  for (let x = 0; x < w; x++) {
+    let f = false;
+    for (let y = 0; y < h; y++) {
+      if (data[(y * w + x) * 4 + 3] > 8) { f = true; break; }
+    }
+    filled[x] = f;
+  }
+
+  // Group contiguous filled columns into runs (each run = one frame's character bounds)
+  const runs: { s: number; e: number }[] = [];
+  let i = 0;
+  while (i < w) {
+    if (filled[i]) {
+      const s = i;
+      while (i < w && filled[i]) i++;
+      runs.push({ s, e: i }); // e is exclusive
+    } else i++;
+  }
+
+  if (runs.length !== expectedFrames) {
+    console.warn(`slide sheet: expected ${expectedFrames} frames, found ${runs.length}`);
+  }
+
+  // Build frame bounds: midpoint between neighbors so the full character is included, never cut
   const out: ImageBitmap[] = [];
-  for (let i = 0; i < frames; i++) {
-    out.push(await createImageBitmap(img, i * fw, 0, fw, fh));
+  for (let k = 0; k < runs.length; k++) {
+    const prevEnd = k > 0 ? runs[k - 1].e : 0;
+    const nextStart = k < runs.length - 1 ? runs[k + 1].s : w;
+    const left = Math.floor((prevEnd + runs[k].s) / 2);
+    const right = Math.ceil((runs[k].e + nextStart) / 2);
+    out.push(await createImageBitmap(img, left, 0, right - left, h));
   }
   return out;
 }
