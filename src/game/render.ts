@@ -91,7 +91,7 @@ export function render(ctx: CanvasRenderingContext2D) {
           const progress = Math.min(1, p.animTimer / 0.5);
           const idx = Math.min(frames.length - 1, Math.floor(progress * frames.length));
           const sprite = frames[idx];
-          const targetH = 60;
+          const targetH = 110;
           const dh = targetH;
           const dw = sprite.width / sprite.height * dh;
           // Use facing.x to determine flip; for pure up/down slides default to right
@@ -129,7 +129,7 @@ export function render(ctx: CanvasRenderingContext2D) {
           : Math.floor(p.animTimer * fps) % frames.length;
         const sprite = frames[idx];
         if (sprite) {
-          const targetH = 60;
+          const targetH = 110;
           const dh = targetH;
           const dw = sprite.width / sprite.height * dh;
           if (flipX) {
@@ -183,7 +183,7 @@ export function render(ctx: CanvasRenderingContext2D) {
   {
     const b = state.ball;
     const scale = b.z;
-    const size = 96 * scale;
+    const size = 56 * scale;
     const yOffset = (scale - 1) * -40;
     if (assets.ball) {
       ctx.drawImage(assets.ball, b.pos.x - size/2, b.pos.y - size/2 + yOffset, size, size);
