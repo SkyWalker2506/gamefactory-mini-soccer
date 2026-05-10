@@ -74,7 +74,8 @@ export function attachFrameEditor(modalBox, asset) {
 
   const SCALE = () => Math.min(1, (modalBox.clientWidth - 60) / W);
   let scale = 0.5;
-  let selected = -1;
+  let selected = -1;       // selected line index (for drag visual)
+  let selectedFrame = -1;  // selected frame index (band between lines)
   let dragging = -1;
 
   const sx = (px) => px * scale;
@@ -90,11 +91,15 @@ export function attachFrameEditor(modalBox, asset) {
     if (img.complete) ctx.drawImage(img, 0, 0, cv.width, cv.height);
     // Draw frame fill bands
     for (let i = 0; i < bounds.length - 1; i++) {
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,235,59,0.07)' : 'rgba(127,207,160,0.07)';
+      if (i === selectedFrame) {
+        ctx.fillStyle = 'rgba(255,68,136,0.25)';
+      } else {
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255,235,59,0.07)' : 'rgba(127,207,160,0.07)';
+      }
       ctx.fillRect(sx(bounds[i]), 0, sx(bounds[i+1]-bounds[i]), cv.height);
-      ctx.fillStyle = '#ffeb3b';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(String(i), sx(bounds[i]) + 4, 14);
+      ctx.fillStyle = i === selectedFrame ? '#ff4488' : '#ffeb3b';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(String(i), sx(bounds[i]) + 6, 18);
     }
     // Draw boundary lines + handles
     bounds.forEach((b, i) => {
@@ -106,7 +111,8 @@ export function attachFrameEditor(modalBox, asset) {
       ctx.fillStyle = i === selected ? '#ff4488' : '#ff00ff';
       ctx.beginPath(); ctx.arc(x, 8, 6, 0, Math.PI * 2); ctx.fill();
     });
-    info.textContent = `${bounds.length - 1} frame · sheet ${W}×${H} · ölçek ${(scale*100).toFixed(0)}%`;
+    const sel = selectedFrame >= 0 ? ` · seçili: frame ${selectedFrame} (${bounds[selectedFrame]}→${bounds[selectedFrame+1]}, w=${bounds[selectedFrame+1]-bounds[selectedFrame]})` : ' · frame seçmek için içine tıkla';
+    info.textContent = `${bounds.length - 1} frame · sheet ${W}×${H} · ölçek ${(scale*100).toFixed(0)}%${sel}`;
     syncOutput();
   }
 
@@ -125,6 +131,21 @@ export function attachFrameEditor(modalBox, asset) {
     return -1;
   }
 
+  function findFrame(mx) {
+    const px = ix(mx);
+    for (let i = 0; i < bounds.length - 1; i++) {
+      if (px >= bounds[i] && px < bounds[i+1]) return i;
+    }
+    return -1;
+  }
+
+  cv.addEventListener('mousemove', (e) => {
+    if (dragging >= 0) return;
+    const r = cv.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    cv.style.cursor = findHandle(mx) >= 0 ? 'ew-resize' : 'pointer';
+  });
+
   cv.addEventListener('mousedown', (e) => {
     const r = cv.getBoundingClientRect();
     const mx = e.clientX - r.left;
@@ -132,11 +153,12 @@ export function attachFrameEditor(modalBox, asset) {
     if (h >= 0) {
       dragging = h;
       selected = h;
-      render();
     } else {
       selected = -1;
-      render();
+      const f = findFrame(mx);
+      selectedFrame = (selectedFrame === f) ? -1 : f; // toggle
     }
+    render();
   });
   window.addEventListener('mousemove', (e) => {
     if (dragging < 0) return;
@@ -150,21 +172,26 @@ export function attachFrameEditor(modalBox, asset) {
   window.addEventListener('mouseup', () => { dragging = -1; });
 
   addBtn.onclick = () => {
-    // Insert a new boundary at midpoint of widest frame
-    let widestI = 0, widestW = 0;
-    for (let i = 0; i < bounds.length - 1; i++) {
-      const w = bounds[i+1] - bounds[i];
-      if (w > widestW) { widestW = w; widestI = i; }
+    // Split the selected frame in half (or widest frame if none selected)
+    let target = selectedFrame;
+    if (target < 0) {
+      let widestW = 0;
+      for (let i = 0; i < bounds.length - 1; i++) {
+        const w = bounds[i+1] - bounds[i];
+        if (w > widestW) { widestW = w; target = i; }
+      }
     }
-    const mid = Math.round((bounds[widestI] + bounds[widestI + 1]) / 2);
-    bounds.splice(widestI + 1, 0, mid);
-    selected = widestI + 1;
+    const mid = Math.round((bounds[target] + bounds[target + 1]) / 2);
+    bounds.splice(target + 1, 0, mid);
+    selectedFrame = target;
     render();
   };
   delBtn.onclick = () => {
-    if (selected > 0 && selected < bounds.length - 1) {
-      bounds.splice(selected, 1);
-      selected = -1;
+    // Remove selected frame by deleting its right boundary (merges into next frame)
+    if (selectedFrame >= 0 && selectedFrame < bounds.length - 1) {
+      const removeAt = selectedFrame === bounds.length - 2 ? selectedFrame : selectedFrame + 1;
+      bounds.splice(removeAt, 1);
+      selectedFrame = -1;
       render();
     }
   };
