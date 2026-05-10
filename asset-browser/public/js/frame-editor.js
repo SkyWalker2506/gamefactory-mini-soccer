@@ -139,16 +139,20 @@ export function attachFrameEditor(modalBox, asset) {
     return -1;
   }
 
+  function canvasX(e) {
+    const r = cv.getBoundingClientRect();
+    // Map display-pixel to canvas-buffer pixel (CSS may shrink the canvas)
+    return (e.clientX - r.left) * (cv.width / r.width);
+  }
+
   cv.addEventListener('mousemove', (e) => {
     if (dragging >= 0) return;
-    const r = cv.getBoundingClientRect();
-    const mx = e.clientX - r.left;
+    const mx = canvasX(e);
     cv.style.cursor = findHandle(mx) >= 0 ? 'ew-resize' : 'pointer';
   });
 
   cv.addEventListener('mousedown', (e) => {
-    const r = cv.getBoundingClientRect();
-    const mx = e.clientX - r.left;
+    const mx = canvasX(e);
     const h = findHandle(mx);
     if (h >= 0) {
       dragging = h;
@@ -162,8 +166,7 @@ export function attachFrameEditor(modalBox, asset) {
   });
   window.addEventListener('mousemove', (e) => {
     if (dragging < 0) return;
-    const r = cv.getBoundingClientRect();
-    const mx = Math.max(0, Math.min(cv.width, e.clientX - r.left));
+    const mx = Math.max(0, Math.min(cv.width, canvasX(e)));
     const minX = dragging > 0 ? bounds[dragging - 1] + 1 : 0;
     const maxX = dragging < bounds.length - 1 ? bounds[dragging + 1] - 1 : W;
     bounds[dragging] = Math.max(minX, Math.min(maxX, ix(mx)));
