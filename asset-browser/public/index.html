@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Soccer — Asset Browser</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a2d14">
+<meta name="application-name" content="Asset Browser">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a2d14; color: #f0fff5;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: linear-gradient(180deg, #143d20 0%, #0a2d14 100%);
+    padding: 16px 24px; border-bottom: 2px solid #7da888;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  }
+  h1 { margin: 0; font-size: 22px; color: #ffeb3b; }
+  .meta { color: #7da888; font-size: 13px; }
+  .controls { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  input, select {
+    background: #051a0a; color: #f0fff5; border: 1px solid #2d6e3d;
+    padding: 8px 12px; border-radius: 4px; font-size: 14px;
+  }
+  input { min-width: 220px; }
+  .lang-switcher { display: flex; gap: 4px; margin-left: 8px; }
+  .lang-btn {
+    background: #051a0a; color: #7da888; border: 1px solid #2d6e3d;
+    padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    font-weight: 600; transition: all .15s;
+  }
+  .lang-btn:hover { border-color: #ffeb3b; color: #f0fff5; }
+  .lang-btn.active { background: #ffeb3b; color: #0a2d14; border-color: #ffeb3b; }
+  .offline-indicator {
+    background: #7a6a1f; color: #fff; padding: 4px 24px; font-size: 12px;
+    text-align: center; width: 100%;
+  }
+  .offline-indicator[hidden] { display: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 24px; background: #110d08; border-bottom: 1px solid #3a2d1d; align-items: center; }
+  .saved-chip { display:inline-flex; align-items:center; gap:6px; background:#3a2d1d; }
+  .saved-chip .x { opacity:.5; cursor:pointer; padding:0 4px; }
+  .saved-chip .x:hover { opacity:1; color:#c94d4d; }
+  .save-filter-btn { background:#2d6e3d; color:#f0fff5; border:none; padding:5px 10px; border-radius:14px; cursor:pointer; font-size:11px; }
+  .save-filter-btn:hover { background:#ffeb3b; color:#0a2d14; }
+  .search-hint { font-size:10px; color:#7da888; margin-top:4px; padding:0 24px; }
+  .chip {
+    padding: 5px 12px; border-radius: 16px; background: #143d20; border: 1px solid #2d6e3d;
+    cursor: pointer; font-size: 12px; color: #c9b889; user-select: none; transition: all .15s;
+  }
+  .chip:hover { border-color: #ffeb3b; }
+  .chip.active { background: #ffeb3b; color: #0a2d14; border-color: #ffeb3b; }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px; padding: 16px 24px;
+  }
+  .card {
+    background: #051a0a; border: 1px solid #3a2d1d; border-radius: 6px;
+    overflow: hidden; cursor: pointer; transition: transform .15s, border-color .15s;
+    display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-2px); border-color: #ffeb3b; }
+  .thumb {
+    aspect-ratio: 1; background:
+      linear-gradient(45deg, #0a2d14 25%, transparent 25%),
+      linear-gradient(-45deg, #0a2d14 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #0a2d14 75%),
+      linear-gradient(-45deg, transparent 75%, #0a2d14 75%);
+    background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    background-color: #143d20;
+    display: flex; align-items: center; justify-content: center; padding: 8px;
+  }
+  .thumb img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: -webkit-optimize-contrast; aspect-ratio:1; }
+  .anim-frame {
+    width: 128px; height: 128px; background-repeat: no-repeat; background-size: auto 100%;
+    image-rendering: -webkit-optimize-contrast;
+  }
+  @keyframes sprite-play { to { background-position-x: var(--end); } }
+  .info { padding: 8px 10px; font-size: 12px; }
+  .info .n { color: #f0fff5; font-weight: 600; word-break: break-word; }
+  .info .d { color: #7da888; font-size: 10px; margin-top: 2px; display: flex; justify-content: space-between; }
+  .tag { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 8px; background: #3a2d1d; color: #c9b889; margin-top: 4px; }
+  .dl {
+    display: block; margin-top: 8px; text-align: center; background: #2d6e3d; color: #f0fff5;
+    text-decoration: none; padding: 6px; border-radius: 4px; font-size: 11px; font-weight: 600;
+    transition: background .15s;
+  }
+  .dl:hover { background: #ffeb3b; color: #0a2d14; }
+  .modal .dl { margin-top: 12px; padding: 10px; font-size: 13px; }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none;
+    align-items: center; justify-content: center; z-index: 100; padding: 24px;
+  }
+  .modal.open { display: flex; }
+  .modal .box {
+    background: #0a2d14; border: 2px solid #ffeb3b; border-radius: 8px;
+    max-width: 90vw; max-height: 90vh; overflow: auto; padding: 20px;
+    display: grid; grid-template-columns: 1fr auto; gap: 20px;
+  }
+  .modal .preview {
+    min-width: 400px; min-height: 400px; max-width: 60vw; max-height: 80vh;
+    background-color: #143d20;
+    background-image:
+      linear-gradient(45deg, #0a2d14 25%, transparent 25%),
+      linear-gradient(-45deg, #0a2d14 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #0a2d14 75%),
+      linear-gradient(-45deg, transparent 75%, #0a2d14 75%);
+    background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal .preview img { max-width: 100%; max-height: 100%; }
+  .modal .details { min-width: 240px; font-size: 13px; }
+  .modal .details h2 { margin: 0 0 12px; color: #ffeb3b; font-size: 16px; word-break: break-word; }
+  .modal .details .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #3a2d1d; }
+  .modal .details .row .k { color: #7da888; }
+  .modal .close { position: absolute; top: 16px; right: 24px; font-size: 28px; color: #ffeb3b; cursor: pointer; background: none; border: none; }
+  .empty { text-align: center; padding: 60px; color: #7da888; }
+  .tab { background: #143d20; border: 1px solid #2d6e3d; color: #c9b889; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .tab:hover { border-color: #ffeb3b; }
+  .tab.active { background: #ffeb3b; color: #0a2d14; border-color: #ffeb3b; }
+  .miss { background:#051a0a; border:1px solid #3a2d1d; border-radius:6px; padding:14px; position:relative; }
+  .miss h3 { margin:0 0 8px; color:#f0fff5; font-size:14px; }
+  .miss .meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .miss .notes { font-size:12px; color:#c9b889; line-height:1.5; margin-bottom:8px; }
+  .miss .prompt { font-size:11px; color:#7da888; background:#051a0a; border:1px solid #3a2d1d; border-radius:4px; padding:8px; max-height:80px; overflow:auto; font-family:ui-monospace,Menlo,monospace; white-space:pre-wrap; margin-bottom:8px; }
+  .miss .actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .miss .btn { flex:1; min-width:100px; padding:7px 10px; border-radius:4px; border:1px solid #2d6e3d; background:#143d20; color:#f0fff5; font-size:11px; cursor:pointer; text-align:center; font-weight:600; }
+  .miss .btn:hover { border-color:#ffeb3b; background:#3a2d1d; }
+  .miss .btn.primary { background:#2d6e3d; }
+  .miss .btn.primary:hover { background:#ffeb3b; color:#0a2d14; }
+  .miss .btn.danger { background:#4d1f1f; border-color:#7a1f1f; }
+  .miss .btn.danger:hover { background:#7a1f1f; }
+  .miss .preview { margin:8px 0; padding:8px; background:#143d20; border:1px dashed #2d6e3d; border-radius:4px; display:flex; align-items:center; gap:8px; }
+  .miss .preview img { max-height:64px; max-width:128px; }
+  .up-preview { margin:10px 0; padding:10px; background:
+    linear-gradient(45deg, #0a2d14 25%, transparent 25%),
+    linear-gradient(-45deg, #0a2d14 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #0a2d14 75%),
+    linear-gradient(-45deg, transparent 75%, #0a2d14 75%); background-color: #143d20;
+    background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    border:1px solid #2d6e3d; border-radius:4px; text-align:center; }
+  .up-preview img { max-width:100%; max-height:280px; object-fit:contain; cursor:zoom-in; }
+  .up-info { margin-top:8px; }
+  .up-name { font-size:12px; color:#f0fff5; word-break:break-all; font-weight:600; }
+  .up-meta { font-size:11px; color:#7da888; margin-top:2px; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#143d20; color:#f0fff5; padding:10px 18px; border-radius:6px; border:1px solid #ffeb3b; z-index:200; font-size:13px; opacity:0; transition:opacity .2s; }
+  .toast.show { opacity:1; }
+  .admin-badge { display:none; background:#7a4a1f; color:#fff; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; cursor:pointer; }
+  .admin-badge.on { display:inline-flex; align-items:center; gap:4px; }
+  .admin-badge.on::before { content:''; width:6px; height:6px; border-radius:50%; background:#ffeb3b; box-shadow:0 0 6px #ffeb3b; }
+  .skeleton { background:linear-gradient(90deg,#0a2d14 25%,#143d20 50%,#0a2d14 75%); background-size:200% 100%; animation:skel 1.4s ease-in-out infinite; border-radius:6px; }
+  @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .card[data-pending] .thumb { background-color:#0a2d14; }
+  .card[data-pending] .thumb img { opacity:0; }
+  .card .thumb img { opacity:1; transition:opacity .2s; }
+  .card.selected, .miss.selected { outline:3px solid #ffeb3b; outline-offset:-1px; }
+  .card.focused, .miss.focused { box-shadow:0 0 0 2px #c9b889; }
+  .select-checkbox {
+    position:absolute; top:6px; left:6px; width:22px; height:22px;
+    background:rgba(15,11,7,.85); border:2px solid #2d6e3d; border-radius:4px;
+    cursor:pointer; display:none; align-items:center; justify-content:center;
+    font-size:14px; color:transparent; user-select:none; transition:all .12s;
+  }
+  .card { position:relative; }
+  .card:hover .select-checkbox, .miss:hover .select-checkbox,
+  body.has-selection .select-checkbox { display:flex; }
+  .card.selected .select-checkbox, .miss.selected .select-checkbox {
+    background:#ffeb3b; color:#0a2d14; border-color:#ffeb3b;
+  }
+  .card.selected .select-checkbox::after, .miss.selected .select-checkbox::after { content:'✓'; }
+  .bulk-bar {
+    position:fixed; bottom:0; left:0; right:0; z-index:150;
+    background:#143d20; border-top:2px solid #ffeb3b; padding:12px 24px;
+    display:none; align-items:center; gap:12px; box-shadow:0 -4px 16px rgba(0,0,0,.5);
+  }
+  body.has-selection .bulk-bar { display:flex; }
+  .bulk-bar .count { font-weight:600; color:#ffeb3b; font-size:14px; min-width:120px; }
+  .bulk-bar button {
+    padding:8px 14px; border-radius:4px; border:1px solid #2d6e3d;
+    background:#051a0a; color:#f0fff5; cursor:pointer; font-size:13px; font-weight:600;
+  }
+  .bulk-bar button:hover { border-color:#ffeb3b; }
+  .bulk-bar button.danger { background:#4d1f1f; border-color:#7a1f1f; }
+  .bulk-bar button.danger:hover { background:#7a1f1f; }
+  .bulk-bar .spacer { flex:1; }
+  .help-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.85); display:none;
+    align-items:center; justify-content:center; z-index:300; padding:24px;
+  }
+  .help-overlay.open { display:flex; }
+  .help-overlay .panel {
+    background:#0a2d14; border:2px solid #ffeb3b; border-radius:8px;
+    padding:24px 32px; max-width:560px; max-height:80vh; overflow:auto;
+  }
+  .help-overlay h2 { color:#ffeb3b; margin:0 0 16px; }
+  .help-overlay table { border-collapse:collapse; width:100%; }
+  .help-overlay td { padding:6px 12px; border-bottom:1px solid #3a2d1d; font-size:13px; }
+  .help-overlay td:first-child { color:#ffeb3b; font-family:ui-monospace,Menlo,monospace; white-space:nowrap; }
+  .help-overlay td:last-child { color:#c9b889; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim-frame { animation: none !important; }
+    * { transition: none !important; }
+  }
+  .upload-box {
+    background:#0a2d14; border:2px solid #ffeb3b; border-radius:8px;
+    padding:24px 28px; max-width:520px; width:90vw; position:relative;
+  }
+  .dropzone {
+    border:2px dashed #2d6e3d; border-radius:8px; padding:36px 20px;
+    text-align:center; background:#051a0a; cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;
+    outline:none;
+  }
+  .dropzone:hover, .dropzone:focus-visible { border-color:#ffeb3b; background:#15110a; }
+  .dropzone:focus-visible { box-shadow:0 0 0 3px rgba(212,168,73,.35); }
+  .dropzone.over {
+    border-color:#ffeb3b; background:#143d20; transform:scale(1.01);
+    box-shadow:inset 0 0 0 2px rgba(212,168,73,.5);
+  }
+  .dz-icon { font-size:36px; color:#ffeb3b; line-height:1; margin-bottom:10px; }
+  .dz-title { font-size:15px; color:#f0fff5; font-weight:600; }
+  .dz-sub { font-size:12px; color:#7da888; margin:8px 0 12px; }
+  .dz-browse {
+    background:#2d6e3d; color:#f0fff5; border:none; padding:8px 18px;
+    border-radius:4px; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .dz-browse:hover, .dz-browse:focus-visible { background:#ffeb3b; color:#0a2d14; outline:none; }
+  .dz-hint { margin-top:14px; font-size:12px; min-height:16px; }
+  .stats-panel {
+    background:#110d08; border-bottom:1px solid #3a2d1d;
+    padding:0; overflow:hidden; transition:max-height .25s ease;
+  }
+  .stats-panel summary {
+    list-style:none; cursor:pointer; padding:8px 24px; font-size:12px;
+    color:#7da888; user-select:none; display:flex; align-items:center; gap:8px;
+  }
+  .stats-panel summary::-webkit-details-marker { display:none; }
+  .stats-panel summary::before {
+    content:'▶'; display:inline-block; transition:transform .15s; font-size:9px; color:#2d6e3d;
+  }
+  .stats-panel[open] summary::before { transform:rotate(90deg); }
+  .stats-panel summary:hover { color:#ffeb3b; }
+  .stats-grid {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:12px; padding:6px 24px 16px;
+  }
+  .stat-card {
+    background:#051a0a; border:1px solid #3a2d1d; border-radius:6px; padding:10px 12px;
+  }
+  .stat-card h4 {
+    margin:0 0 8px; font-size:10px; color:#7da888; text-transform:uppercase;
+    letter-spacing:.5px; font-weight:600;
+  }
+  .stat-card .total {
+    font-size:22px; color:#ffeb3b; font-weight:700; line-height:1;
+  }
+  .stat-bars { margin-top:6px; }
+  .stat-row {
+    display:flex; align-items:center; gap:6px; margin:3px 0; font-size:11px;
+  }
+  .stat-row .label { color:#c9b889; min-width:70px; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .stat-row .bar { flex:1; height:6px; background:#143d20; border-radius:3px; overflow:hidden; }
+  .stat-row .bar-fill { height:100%; background:linear-gradient(90deg,#7da888,#ffeb3b); transition:width .25s; }
+  .stat-row .count { color:#7da888; min-width:26px; text-align:right; font-variant-numeric:tabular-nums; }
+  @media (prefers-reduced-motion: reduce) {
+    .stats-panel, .stat-row .bar-fill, .dropzone { transition:none !important; }
+    .dropzone.over { transform:none !important; }
+  }
+  .skip-link { position:absolute; left:-9999px; top:4px; z-index:9999; background:#ffeb3b; color:#0a2d14; padding:8px 16px; border-radius:4px; font-weight:600; text-decoration:none; }
+  .skip-link:focus { left:16px; }
+  .pri-P0 { background:#7a1f1f; color:#fff; }
+  .pri-P1 { background:#7a4a1f; color:#fff; }
+  .pri-P2 { background:#3a2d1d; color:#c9b889; }
+  .st-todo { background:#3a2d1d; color:#7da888; }
+  .st-in-progress { background:#2a4d7a; color:#fff; }
+  .st-waiting-for-review { background:#7a6a1f; color:#fff; }
+  .st-denied { background:#7a1f1f; color:#fff; }
+  .st-approved, .st-done { background:#2a5a2a; color:#fff; }
+  .st-blocked { background:#4d2a2a; color:#fff; }
+  .deny-reason { margin:8px 0; padding:8px 10px; background:#2a0f0f; border-left:3px solid #c94d4d; color:#f4c0c0; font-size:12px; border-radius:4px; }
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link" data-i18n="header.skip_link">İçeriğe geç</a>
+<div id="offline-banner" class="offline-indicator" hidden role="status" aria-live="polite"></div>
+<header role="banner">
+  <h1 data-i18n="app.title">Mini Soccer — Asset Browser</h1>
+  <span class="meta" id="meta" data-i18n="status.loading">loading…</span>
+  <span class="admin-badge" id="admin-badge" title="Admin mod aktif — Ctrl+Shift+T ile kapat">admin</span>
+  <div class="tabs" style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="tab active" data-tab="have" data-i18n="tabs.have">Mevcut</button>
+    <button class="tab" data-tab="todo" data-i18n="tabs.todo">Eksik</button>
+    <button class="tab" data-tab="waiting" data-i18n="tabs.waiting">Bekleyen</button>
+    <button class="tab" data-tab="denied" data-i18n="tabs.denied">Reddedilen</button>
+    <button class="tab" data-tab="trash" id="trash-tab" style="display:none;" data-i18n="tabs.trash">Çöp</button>
+  </div>
+  <div class="controls">
+    <input id="q" data-i18n-attr="placeholder" data-i18n="header.search_placeholder" placeholder="Ara — cat:building tag:hd type:animasyon …" data-i18n-attr-2="title" data-i18n-2="header.search_title" title="Operatörler: cat: kind: type: status: ext: dim: tag: (! ile negation, | ile OR)" data-i18n-attr-3="aria-label" data-i18n-3="header.search_aria_label" aria-label="Arama">
+    <select id="type" data-i18n-attr="aria-label" data-i18n="header.type_aria_label" aria-label="Tip filtresi">
+      <option value="" data-i18n="filters.all_types">Tüm tipler</option>
+      <option value="Resim">Resim</option>
+      <option value="Animasyon">Animasyon</option>
+    </select>
+    <select id="cat" data-i18n-attr="aria-label" data-i18n="header.cat_aria_label" aria-label="Kategori filtresi">
+      <option value="" data-i18n="filters.all_categories">Tüm kategoriler</option>
+    </select>
+    <select id="ext" data-i18n-attr="aria-label" data-i18n="header.ext_aria_label" aria-label="Format filtresi">
+      <option value="" data-i18n="filters.all_extensions">Tüm formatlar</option>
+    </select>
+    <select id="sort" data-i18n-attr="aria-label" data-i18n="header.sort_aria_label" aria-label="Sıralama">
+      <option value="name" data-i18n="filters.sort_name">A → Z</option>
+      <option value="name-desc" data-i18n="filters.sort_name_desc">Z → A</option>
+      <option value="size-desc" data-i18n="filters.sort_size_desc">Büyük → Küçük</option>
+      <option value="size" data-i18n="filters.sort_size">Küçük → Büyük</option>
+      <option value="dim-desc" data-i18n="filters.sort_dim_desc">Çözünürlük yüksek</option>
+      <option value="date-desc" data-i18n="filters.sort_date_desc">Yeni → Eski</option>
+      <option value="date" data-i18n="filters.sort_date">Eski → Yeni</option>
+    </select>
+    <div class="lang-switcher" id="lang-switcher" data-i18n-attr="aria-label" data-i18n="lang.switcher_label" aria-label="Dil seçimi">
+      <button class="lang-btn" data-lang="tr" data-i18n="lang.tr">TR</button>
+      <button class="lang-btn" data-lang="en" data-i18n="lang.en">EN</button>
+    </div>
+  </div>
+</header>
+<main id="main-content" role="main">
+<div class="chips" id="chips" data-i18n-attr="aria-label" data-i18n="header.chips_aria_label" aria-label="Kategori filtreleri"></div>
+<div class="chips" id="saved-filters-bar" style="border-top:0;padding-top:6px;padding-bottom:6px;">
+  <span style="font-size:11px;color:#7da888;margin-right:4px;" data-i18n="chips.saved_filters_label">Kaydedilenler:</span>
+  <span id="saved-filters"></span>
+  <button class="save-filter-btn" data-action="save-filter" data-i18n-attr="title" data-i18n="chips.save_filter_title" title="Mevcut filtreyi kaydet" data-i18n="chips.save_filter_btn">+ Kaydet</button>
+</div>
+<details class="stats-panel" id="stats-panel">
+  <summary><span data-i18n="stats.panel_title">İstatistikler</span><span id="stats-summary" style="margin-left:auto;color:#2d6e3d;font-size:11px;"></span></summary>
+  <div class="stats-grid" id="stats-grid" aria-live="polite"></div>
+</details>
+<div class="grid" id="grid"></div>
+</main>
+<div class="modal" id="modal" role="dialog" aria-modal="true" data-i18n-attr="aria-label" data-i18n="modal.asset_detail_aria_label" aria-label="Asset detayı">
+  <button class="close">×</button>
+  <div class="box" id="box"></div>
+</div>
+<div class="bulk-bar" id="bulk-bar" role="toolbar" data-i18n-attr="aria-label" data-i18n="header.bulk_aria_label" aria-label="Çoklu seçim eylemleri">
+  <span class="count" id="bulk-count">0 seçili</span>
+  <button id="bulk-action-delete" data-action="bulk-delete" class="danger" type="button" data-i18n="bulk.delete">Sil</button>
+  <button id="bulk-action-restore" data-action="bulk-restore" type="button" style="display:none;" data-i18n="bulk.restore">Geri Yükle</button>
+  <button id="bulk-action-clear" data-action="bulk-clear" type="button" style="display:none;" data-i18n="bulk.clear">Temizle</button>
+  <span class="spacer"></span>
+  <button id="bulk-action-cancel" data-action="bulk-cancel" type="button" data-i18n="bulk.cancel">Vazgeç (Esc)</button>
+</div>
+<div class="help-overlay" id="help-overlay" role="dialog" data-i18n-attr="aria-label" data-i18n="help.title" aria-label="Klavye kısayolları">
+  <div class="panel">
+    <h2 data-i18n="help.title">Klavye Kısayolları</h2>
+    <table>
+      <tr><td>/</td><td data-i18n="help.focus_search">Aramaya odaklan</td></tr>
+      <tr><td>Esc</td><td data-i18n="help.esc_desc">Modal kapat / seçimi temizle / aramayı sıfırla</td></tr>
+      <tr><td>?</td><td data-i18n="help.help_desc">Bu yardımı aç/kapat</td></tr>
+      <tr><td>g h</td><td data-i18n="tabs.have">Mevcut sekmesi</td></tr>
+      <tr><td>g t</td><td data-i18n="tabs.todo">Eksik sekmesi</td></tr>
+      <tr><td>g w</td><td data-i18n="tabs.waiting">Bekleyen sekmesi</td></tr>
+      <tr><td>g d</td><td data-i18n="tabs.denied">Reddedilen sekmesi</td></tr>
+      <tr><td>↑ ↓ ← →</td><td data-i18n="help.nav_desc">Grid içinde gezin (yön tuşları)</td></tr>
+      <tr><td>j / k</td><td data-i18n="help.jk_desc">Sonraki / önceki kart</td></tr>
+      <tr><td>Enter</td><td data-i18n="help.enter_desc">Odaklı kartı aç</td></tr>
+      <tr><td>x</td><td data-i18n="help.x_desc">Odaklı kartı seç/seçimden çıkar</td></tr>
+      <tr><td>Shift+Click</td><td data-i18n="help.shift_click_desc">Aralık seç</td></tr>
+      <tr><td>Ctrl/Cmd+A</td><td data-i18n="help.select_all_desc">Tümünü seç (görünür)</td></tr>
+      <tr><td>t</td><td data-i18n="help.t_desc">Seçilenler için toplu etiket düzenleyici</td></tr>
+      <tr><td>d d</td><td data-i18n="help.dd_desc">Seçilenleri sil</td></tr>
+      <tr><td>Ctrl+Shift+T</td><td data-i18n="help.admin_desc">Admin modu aç/kapat</td></tr>
+      <tr><td>Ctrl/Cmd+V</td><td data-i18n="help.paste_desc">Upload modal açıkken yapıştır + yükle</td></tr>
+    </table>
+    <div style="margin-top:14px;text-align:right;">
+      <button style="padding:8px 16px;background:#2d6e3d;color:#f0fff5;border:none;border-radius:4px;cursor:pointer;" data-i18n="help.close_btn">Tamam</button>
+    </div>
+  </div>
+</div>
+<div id="sr-status" role="status" aria-live="polite" aria-atomic="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

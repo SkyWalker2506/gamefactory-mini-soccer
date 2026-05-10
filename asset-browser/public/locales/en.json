@@ -1,0 +1,144 @@
+{
+  "app": {
+    "title": "Mini Soccer — Asset Browser",
+    "tagline": "Medieval game asset inventory & management"
+  },
+  "header": {
+    "skip_link": "Skip to content",
+    "search_placeholder": "Search — cat:building tag:hd type:animation …",
+    "search_title": "Operators: cat: kind: type: status: ext: dim: tag: (! for negation, | for OR)",
+    "search_aria_label": "Search",
+    "help": "Help",
+    "upload": "Upload"
+  },
+  "tabs": {
+    "have": "Existing",
+    "todo": "Missing",
+    "waiting": "Pending",
+    "denied": "Denied",
+    "trash": "Trash"
+  },
+  "filters": {
+    "all_types": "All types",
+    "all_categories": "All categories",
+    "all_extensions": "All formats",
+    "sort_name": "A → Z",
+    "sort_name_desc": "Z → A",
+    "sort_size_desc": "Large → Small",
+    "sort_size": "Small → Large",
+    "sort_dim_desc": "Highest resolution",
+    "sort_date_desc": "New → Old",
+    "sort_date": "Old → New"
+  },
+  "chips": {
+    "show_all": "All",
+    "uploaded_only": "Uploaded Only",
+    "missing_only": "Missing Only",
+    "review_pending": "Review Pending",
+    "recently_added": "Recently Added",
+    "saved_filters_label": "Saved:",
+    "save_filter_btn": "+ Save",
+    "save_filter_title": "Save current filter"
+  },
+  "actions": {
+    "delete": "Delete",
+    "restore": "Restore",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel (Esc)",
+    "confirm": "OK",
+    "copy": "Copy Prompt",
+    "upload": "Upload",
+    "clear": "Clear",
+    "close": "Close",
+    "browse": "Browse…",
+    "download": "Download"
+  },
+  "modal": {
+    "delete_confirm": "Are you sure you want to delete?",
+    "upload_choose": "Drop file here",
+    "upload_drop": "or paste (Ctrl+V) · or",
+    "upload_paste": "Upload: {name}",
+    "upload_progress": "Upload: {current} / {total}",
+    "upload_queue_done": "Queue done",
+    "upload_queue_skip": "Skip & Continue",
+    "help_title": "Keyboard Shortcuts",
+    "asset_detail_aria_label": "Asset detail"
+  },
+  "status": {
+    "ready": "Ready",
+    "loading": "Loading…",
+    "uploading": "Uploading: {name}",
+    "deleting": "Deleting…",
+    "complete": "Complete",
+    "failed": "Error: {error}",
+    "offline": "Offline",
+    "online": "Online",
+    "empty_list": "List is empty.",
+    "empty_matches": "No matching assets.",
+    "empty_trash": "Trash is empty.",
+    "admin_active": "Admin mode active",
+    "admin_inactive": "Admin mode inactive"
+  },
+  "stats": {
+    "panel_title": "Statistics",
+    "total": "Total ({tab})",
+    "uploaded": "Existing",
+    "missing": "Missing",
+    "review": "Pending",
+    "trash": "Trash",
+    "category": "Category",
+    "kind": "Kind",
+    "type": "Type",
+    "workflow": "Workflow status",
+    "queues": "Queues",
+    "filtered": "filtered: {count}",
+    "summary": "{visible}/{total} visible · {missing} missing · {waiting} pending"
+  },
+  "sr": {
+    "filter_count": "{count} assets shown",
+    "upload_done": "{name} uploaded",
+    "delete_done": "Deletion complete",
+    "selection_count": "{count} selected"
+  },
+  "bulk_tags": {
+    "title": "Bulk Tag Editor ({count} items)",
+    "common": "Common tags",
+    "some": "Some tags",
+    "add_placeholder": "Add new tag...",
+    "applied": "{count} items updated"
+  },
+  "sprite": {
+    "preview_label": "Sprite preview",
+    "play": "Play",
+    "pause": "Pause",
+    "fps": "FPS",
+    "frame": "Frame"
+  },
+  "help": {
+    "title": "Keyboard Shortcuts",
+    "focus_search": "Focus search",
+    "esc_desc": "Close modal / clear selection / reset search",
+    "help_desc": "Toggle this help",
+    "nav_desc": "Navigate grid",
+    "jk_desc": "Next / previous card",
+    "enter_desc": "Open focused card",
+    "x_desc": "Select/deselect focused card",
+    "shift_click_desc": "Range select",
+    "select_all_desc": "Select all (visible)",
+    "t_desc": "Bulk tag editor for selected items",
+    "dd_desc": "Delete selected",
+    "admin_desc": "Toggle admin mode",
+    "paste_desc": "Paste + upload when modal open",
+    "close_btn": "Close"
+  },
+  "lang": {
+    "switcher_label": "Language selection",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "trash": {
+    "expires_in": "Expires in {days} days",
+    "auto_purge_warning": "Trash items are auto-purged after 30 days."
+  }
+}

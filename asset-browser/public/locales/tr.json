@@ -1,0 +1,144 @@
+{
+  "app": {
+    "title": "Mini Soccer — Asset Browser",
+    "tagline": "Ortaçağ oyun varlıkları envanteri ve yönetimi"
+  },
+  "header": {
+    "skip_link": "İçeriğe geç",
+    "search_placeholder": "Ara — cat:building tag:hd type:animasyon …",
+    "search_title": "Operatörler: cat: kind: type: status: ext: dim: tag: (! ile negation, | ile OR)",
+    "search_aria_label": "Arama",
+    "help": "Yardım",
+    "upload": "Yükle"
+  },
+  "tabs": {
+    "have": "Mevcut",
+    "todo": "Eksik",
+    "waiting": "Bekleyen",
+    "denied": "Reddedilen",
+    "trash": "Çöp"
+  },
+  "filters": {
+    "all_types": "Tüm tipler",
+    "all_categories": "Tüm kategoriler",
+    "all_extensions": "Tüm formatlar",
+    "sort_name": "A → Z",
+    "sort_name_desc": "Z → A",
+    "sort_size_desc": "Büyük → Küçük",
+    "sort_size": "Küçük → Büyük",
+    "sort_dim_desc": "Çözünürlük yüksek",
+    "sort_date_desc": "Yeni → Eski",
+    "sort_date": "Eski → Yeni"
+  },
+  "chips": {
+    "show_all": "Tümü",
+    "uploaded_only": "Sadece Yüklenenler",
+    "missing_only": "Sadece Eksikler",
+    "review_pending": "İnceleme Bekleyenler",
+    "recently_added": "Son Eklenenler",
+    "saved_filters_label": "Kaydedilenler:",
+    "save_filter_btn": "+ Kaydet",
+    "save_filter_title": "Mevcut filtreyi kaydet"
+  },
+  "actions": {
+    "delete": "Sil",
+    "restore": "Geri Yükle",
+    "approve": "Onayla",
+    "reject": "Reddet",
+    "cancel": "Vazgeç (Esc)",
+    "confirm": "Tamam",
+    "copy": "Prompt Kopyala",
+    "upload": "Upload",
+    "clear": "Temizle",
+    "close": "Kapat",
+    "browse": "Gözat…",
+    "download": "İndir"
+  },
+  "modal": {
+    "delete_confirm": "Silmek istediğinize emin misiniz?",
+    "upload_choose": "Dosyayı buraya sürükleyin",
+    "upload_drop": "veya yapıştırın (Ctrl+V) · ya da",
+    "upload_paste": "Yükle: {name}",
+    "upload_progress": "Yükleme: {current} / {total}",
+    "upload_queue_done": "Kuyruk tamamlandı",
+    "upload_queue_skip": "Atla ve Devam Et",
+    "help_title": "Klavye Kısayolları",
+    "asset_detail_aria_label": "Asset detayı"
+  },
+  "status": {
+    "ready": "Hazır",
+    "loading": "Yükleniyor…",
+    "uploading": "Yükleniyor: {name}",
+    "deleting": "Siliniyor…",
+    "complete": "Tamamlandı",
+    "failed": "Hata: {error}",
+    "offline": "Çevrimdışı",
+    "online": "Çevrimiçi",
+    "empty_list": "Liste boş.",
+    "empty_matches": "Eşleşen asset yok.",
+    "empty_trash": "Çöp boş.",
+    "admin_active": "Admin mod aktif",
+    "admin_inactive": "Admin mod kapalı"
+  },
+  "stats": {
+    "panel_title": "İstatistikler",
+    "total": "Toplam ({tab})",
+    "uploaded": "Mevcut",
+    "missing": "Eksik",
+    "review": "Bekleyen",
+    "trash": "Çöp",
+    "category": "Kategori",
+    "kind": "Tür",
+    "type": "Tip",
+    "workflow": "Workflow durumu",
+    "queues": "Kuyruklar",
+    "filtered": "filtreli: {count}",
+    "summary": "{visible}/{total} görünen · {missing} eksik · {waiting} bekleyen"
+  },
+  "sr": {
+    "filter_count": "{count} asset gösteriliyor",
+    "upload_done": "{name} yüklendi",
+    "delete_done": "Silme tamamlandı",
+    "selection_count": "{count} seçili"
+  },
+  "bulk_tags": {
+    "title": "Toplu Etiket Düzenleyici ({count} öğe)",
+    "common": "Ortak etiketler",
+    "some": "Bazı öğelerde olanlar",
+    "add_placeholder": "Yeni etiket ekle...",
+    "applied": "{count} öğe güncellendi"
+  },
+  "sprite": {
+    "preview_label": "Sprite önizleme",
+    "play": "Oynat",
+    "pause": "Duraklat",
+    "fps": "FPS",
+    "frame": "Kare"
+  },
+  "help": {
+    "title": "Klavye Kısayolları",
+    "focus_search": "Aramaya odaklan",
+    "esc_desc": "Modal kapat / seçimi temizle / aramayı sıfırla",
+    "help_desc": "Bu yardımı aç/kapat",
+    "nav_desc": "Grid içinde gezin",
+    "jk_desc": "Sonraki / önceki kart",
+    "enter_desc": "Odaklı kartı aç",
+    "x_desc": "Odaklı kartı seç/seçimden çıkar",
+    "shift_click_desc": "Aralık seç",
+    "select_all_desc": "Tümünü seç (görünür)",
+    "t_desc": "Seçilenler için toplu etiket düzenleyici",
+    "dd_desc": "Seçilenleri sil",
+    "admin_desc": "Admin modu aç/kapat",
+    "paste_desc": "Upload modal açıkken yapıştır + yükle",
+    "close_btn": "Tamam"
+  },
+  "lang": {
+    "switcher_label": "Dil seçimi",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "trash": {
+    "expires_in": "{days} gün içinde silinecek",
+    "auto_purge_warning": "Çöp kutusundaki öğeler 30 gün sonra otomatik olarak temizlenir."
+  }
+}

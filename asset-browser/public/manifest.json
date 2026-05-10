@@ -1,0 +1,269 @@
+{
+  "generated": "2026-05-10T21:07:36.034Z",
+  "title": "Mini Soccer",
+  "count": 9,
+  "items": [
+    {
+      "id": "asset-ball",
+      "name": "ball",
+      "file": "ball.png",
+      "ext": "png",
+      "src": "./assets/asset/ball.png",
+      "category": "Assets",
+      "kind": "Other",
+      "type": "Resim",
+      "size": 171440,
+      "dim": "1448x1086",
+      "mtime": "2026-05-01T00:22:35.893Z"
+    },
+    {
+      "id": "asset-field",
+      "name": "field",
+      "file": "field.png",
+      "ext": "png",
+      "src": "./assets/asset/field.png",
+      "category": "Assets",
+      "kind": "Other",
+      "type": "Resim",
+      "size": 1892940,
+      "dim": "1448x1086",
+      "mtime": "2026-05-01T00:22:35.894Z"
+    },
+    {
+      "id": "asset-red-player",
+      "name": "red-player",
+      "file": "red-player.png",
+      "ext": "png",
+      "src": "./assets/asset/red-player.png",
+      "category": "Assets",
+      "kind": "Other",
+      "type": "Resim",
+      "size": 410056,
+      "dim": "1688x932",
+      "mtime": "2026-05-01T00:22:35.897Z"
+    },
+    {
+      "id": "asset-running-down-nonbg",
+      "name": "running-down-nonbg",
+      "file": "running-down-nonbg.png",
+      "ext": "png",
+      "src": "./assets/asset/running-down-nonbg.png",
+      "category": "Assets",
+      "kind": "Animation",
+      "type": "Animasyon",
+      "size": 376462,
+      "dim": "1536x1024",
+      "mtime": "2026-05-01T00:22:35.898Z",
+      "cols": 8,
+      "rows": 1,
+      "fps": 12,
+      "tags": [
+        "animation",
+        "run",
+        "down"
+      ]
+    },
+    {
+      "id": "asset-running-right-nonbg",
+      "name": "running-right-nonbg",
+      "file": "running-right-nonbg.png",
+      "ext": "png",
+      "src": "./assets/asset/running-right-nonbg.png",
+      "category": "Assets",
+      "kind": "Animation",
+      "type": "Animasyon",
+      "size": 427510,
+      "dim": "1536x1024",
+      "mtime": "2026-05-01T00:22:35.899Z",
+      "cols": 8,
+      "rows": 1,
+      "fps": 12,
+      "tags": [
+        "animation",
+        "run",
+        "right"
+      ]
+    },
+    {
+      "id": "asset-running-up-nonbg",
+      "name": "running-up-nonbg",
+      "file": "running-up-nonbg.png",
+      "ext": "png",
+      "src": "./assets/asset/running-up-nonbg.png",
+      "category": "Assets",
+      "kind": "Animation",
+      "type": "Animasyon",
+      "size": 341291,
+      "dim": "1448x1086",
+      "mtime": "2026-05-01T00:22:35.900Z",
+      "cols": 8,
+      "rows": 1,
+      "fps": 12,
+      "tags": [
+        "animation",
+        "run",
+        "up"
+      ]
+    },
+    {
+      "id": "asset-shoot-right-nonbg",
+      "name": "shoot-right-nonbg",
+      "file": "shoot-right-nonbg.png",
+      "ext": "png",
+      "src": "./assets/asset/shoot-right-nonbg.png",
+      "category": "Assets",
+      "kind": "Animation",
+      "type": "Animasyon",
+      "size": 334366,
+      "dim": "1536x1024",
+      "mtime": "2026-05-01T00:22:35.901Z",
+      "cols": 6,
+      "rows": 1,
+      "fps": 18,
+      "tags": [
+        "animation",
+        "shoot"
+      ]
+    },
+    {
+      "id": "asset-slide-blue",
+      "name": "slide-blue",
+      "file": "slide-blue.png",
+      "ext": "png",
+      "src": "./assets/asset/slide-blue.png",
+      "category": "Assets",
+      "kind": "Animation",
+      "type": "Animasyon",
+      "size": 323550,
+      "dim": "1536x1024",
+      "mtime": "2026-05-10T19:51:52.937Z",
+      "frames": [
+        {
+          "x": 8,
+          "y": 0,
+          "w": 160,
+          "h": 1024
+        },
+        {
+          "x": 167,
+          "y": 0,
+          "w": 175,
+          "h": 1024
+        },
+        {
+          "x": 341,
+          "y": 0,
+          "w": 225,
+          "h": 1024
+        },
+        {
+          "x": 565,
+          "y": 0,
+          "w": 215,
+          "h": 1024
+        },
+        {
+          "x": 779,
+          "y": 0,
+          "w": 211,
+          "h": 1024
+        },
+        {
+          "x": 990,
+          "y": 0,
+          "w": 203,
+          "h": 1024
+        },
+        {
+          "x": 1192,
+          "y": 0,
+          "w": 160,
+          "h": 1024
+        },
+        {
+          "x": 1352,
+          "y": 0,
+          "w": 167,
+          "h": 1024
+        }
+      ],
+      "fps": 16,
+      "tags": [
+        "animation",
+        "slide",
+        "blue",
+        "team-blue"
+      ]
+    },
+    {
+      "id": "asset-slide-red",
+      "name": "slide-red",
+      "file": "slide-red.png",
+      "ext": "png",
+      "src": "./assets/asset/slide-red.png",
+      "category": "Assets",
+      "kind": "Animation",
+      "type": "Animasyon",
+      "size": 369955,
+      "dim": "1672x941",
+      "mtime": "2026-05-10T19:51:52.939Z",
+      "frames": [
+        {
+          "x": 9,
+          "y": 0,
+          "w": 167,
+          "h": 941
+        },
+        {
+          "x": 176,
+          "y": 0,
+          "w": 178,
+          "h": 941
+        },
+        {
+          "x": 354,
+          "y": 0,
+          "w": 232,
+          "h": 941
+        },
+        {
+          "x": 585,
+          "y": 0,
+          "w": 228,
+          "h": 941
+        },
+        {
+          "x": 812,
+          "y": 0,
+          "w": 238,
+          "h": 941
+        },
+        {
+          "x": 1049,
+          "y": 0,
+          "w": 235,
+          "h": 941
+        },
+        {
+          "x": 1283,
+          "y": 0,
+          "w": 181,
+          "h": 941
+        },
+        {
+          "x": 1464,
+          "y": 0,
+          "w": 183,
+          "h": 941
+        }
+      ],
+      "fps": 16,
+      "tags": [
+        "animation",
+        "slide",
+        "red",
+        "team-red"
+      ]
+    }
+  ]
+}
