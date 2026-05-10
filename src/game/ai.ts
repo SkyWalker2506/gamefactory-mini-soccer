@@ -1,6 +1,6 @@
 import { state } from "./world";
 import { Player, v2, vSub, vAdd, vMul, vLen, vLenSq, vNorm, vDist } from "../types";
-import { executePass, executeShoot } from "./physics";
+import { executePass, executeShoot, tryStartSlide } from "./physics";
 
 const FIELD_LEFT = 60, FIELD_RIGHT = 1220, FIELD_TOP = 60, FIELD_BOTTOM = 660;
 
@@ -12,7 +12,7 @@ export function updateAI(dt: number) {
         aiTickTimer = 0.1; // 100ms tick per GDD
         assignRoles();
         state.players.forEach(p => {
-            if (!p.isHuman) {
+            if (!p.isHuman && p.state !== 'SLIDE') {
                 decideAction(p);
             }
         });
@@ -170,7 +170,19 @@ function decideAction(p: Player) {
             p.vel = vMul(vNorm(vSub(anchor, p.pos)), 180);
         }
         } // end else (carrier block)
-    } else if (p.role === 'PRESSURER') {
+    } else if (p.role === 'PRESSURER' || p.role === 'MARKER') {
+        // Try slide-tackle when close to opposing ball carrier
+        const carrier = state.ball.lastTouchedBy !== null ? state.players.find(x => x.id === state.ball.lastTouchedBy) : null;
+        if (carrier && carrier.team !== p.team && p.slideCooldown <= 0) {
+            const d = vDist(p.pos, carrier.pos);
+            if (d < 70 && d > 20) {
+                const dir = vNorm(vSub(vAdd(carrier.pos, vMul(carrier.vel, 0.15)), p.pos));
+                tryStartSlide(p, dir);
+                return;
+            }
+        }
+    }
+    if (p.role === 'PRESSURER') {
         // If ball is loose, sprint directly to ball; otherwise intercept between ball and own goal
         const isLoose = state.ball.lastTouchedBy === null;
         let targetPos;

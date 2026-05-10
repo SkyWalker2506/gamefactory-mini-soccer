@@ -4,7 +4,7 @@ const activeKeys = new Set<string>();
 const singleFrameKeys = new Set<string>();
 
 window.addEventListener("keydown", (e) => {
-  if (["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+  if (["Space", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyC"].includes(e.code)) {
     e.preventDefault();
   }
   activeKeys.add(e.code);
@@ -43,12 +43,13 @@ export function getInputCommand(): InputCommand {
   const shoot = singleFrameKeys.has("KeyX") || singleFrameKeys.has("KeyK") || touchShootFrame;
   const switchPlayer = singleFrameKeys.has("KeyQ") || singleFrameKeys.has("Tab");
   const pause = singleFrameKeys.has("Escape");
+  const slide = singleFrameKeys.has("KeyC") || singleFrameKeys.has("KeyL");
 
   singleFrameKeys.clear();
   touchPassFrame = false;
   touchShootFrame = false;
 
-  return { moveDir, sprint, pass, shoot, switchPlayer, pause };
+  return { moveDir, sprint, pass, shoot, switchPlayer, pause, slide };
 }
 
 export function setTouchInput(dir: Vector2, sprint: boolean) {

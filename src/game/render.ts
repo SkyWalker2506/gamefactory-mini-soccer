@@ -83,6 +83,29 @@ export function render(ctx: CanvasRenderingContext2D) {
   entities.forEach(e => {
     if (e.type === 'player') {
       const p = e.obj;
+      // Slide sprite (single-frame), rotated to facing direction
+      if (p.state === 'SLIDE') {
+        const slideImg = p.team === 'BLUE' ? assets.slideBlue : assets.slideRed;
+        if (slideImg) {
+          const targetH = 60;
+          const dh = targetH;
+          const dw = slideImg.width / slideImg.height * dh;
+          const angle = Math.atan2(p.facing.y, p.facing.x); // sprite assumed to face +X
+          ctx.save();
+          ctx.translate(p.pos.x, p.pos.y - 6);
+          ctx.rotate(angle);
+          ctx.drawImage(slideImg, -dw / 2, -dh / 2, dw, dh);
+          ctx.restore();
+        } else {
+          // Fallback: streak under player to show motion
+          ctx.save();
+          ctx.fillStyle = p.team === 'BLUE' ? 'rgba(80,160,255,0.7)' : 'rgba(255,90,90,0.7)';
+          ctx.translate(p.pos.x, p.pos.y);
+          ctx.rotate(Math.atan2(p.facing.y, p.facing.x));
+          ctx.fillRect(-30, -8, 60, 16);
+          ctx.restore();
+        }
+      } else {
       const set = p.team === 'BLUE' ? assets.blue : assets.red;
       if (set) {
         let frames: ImageBitmap[] = set.down;
@@ -115,6 +138,7 @@ export function render(ctx: CanvasRenderingContext2D) {
           }
         }
       }
+      } // end non-SLIDE sprite branch
       // Human indicator: highlight ring + arrow above
       if (p.isHuman) {
         // Yellow selection ring
@@ -139,6 +163,13 @@ export function render(ctx: CanvasRenderingContext2D) {
         ctx.fillRect(p.pos.x - 15, p.pos.y - 34, 30, 4);
         ctx.fillStyle = '#ffff00';
         ctx.fillRect(p.pos.x - 15, p.pos.y - 34, 30 * (p.stamina / 100), 4);
+
+        // Slide cooldown bar (cyan when ready, gray while charging)
+        ctx.fillStyle = '#000';
+        ctx.fillRect(p.pos.x - 15, p.pos.y - 28, 30, 3);
+        const slideReady = 1 - Math.min(1, p.slideCooldown / 5);
+        ctx.fillStyle = p.slideCooldown <= 0 ? '#00e5ff' : '#888';
+        ctx.fillRect(p.pos.x - 15, p.pos.y - 28, 30 * slideReady, 3);
       }
     }
   });
@@ -232,6 +263,7 @@ function drawControls(ctx: CanvasRenderingContext2D) {
     { key: 'Shift',        action: 'Sprint' },
     { key: 'Space / J',   action: 'Pas' },
     { key: 'X / K',       action: 'Şut' },
+    { key: 'C / L',       action: 'Kayma (5sn)' },
     { key: 'Q / Tab',     action: 'Oyuncu değiştir' },
     { key: 'Esc',         action: 'Duraklat' },
   ];

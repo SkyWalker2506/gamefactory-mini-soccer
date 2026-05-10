@@ -39,22 +39,35 @@ export function updatePhysics(dt: number, input: InputCommand) {
     }
     
     // Apply inputs
-    applyPlayerMovement(p, input.moveDir, input.sprint, dt);
-    
-    if (input.pass) executePass(p);
-    if (input.shoot) executeShoot(p);
+    if (p.state !== 'SLIDE') {
+      applyPlayerMovement(p, input.moveDir, input.sprint, dt);
+      if (input.pass) executePass(p);
+      if (input.shoot) executeShoot(p);
+      if (input.slide) tryStartSlide(p, input.moveDir);
+    }
   }
 
   // 2. AI movement (applied elsewhere, but we run physics for all here)
   state.players.forEach(p => {
-    if (!p.isHuman) {
-      // AI movement is set in AI update, we just apply velocity to pos
+    // Slide cooldown ticks regardless
+    if (p.slideCooldown > 0) p.slideCooldown = Math.max(0, p.slideCooldown - dt);
+
+    if (p.state === 'SLIDE') {
+      // Locked direction, decelerating slide
+      p.slideTimer -= dt;
+      p.pos = vAdd(p.pos, vMul(p.vel, dt));
+      p.vel = vMul(p.vel, 0.94); // deceleration
+      p.facing = vLenSq(p.slideDir) > 0 ? p.slideDir : p.facing;
+      p.animTimer += dt;
+      if (p.slideTimer <= 0) {
+        p.state = 'IDLE';
+        p.vel = v2(0, 0);
+      }
+    } else if (!p.isHuman) {
       if (vLenSq(p.vel) > 0) {
         p.pos = vAdd(p.pos, vMul(p.vel, dt));
         p.facing = vNorm(p.vel);
       }
-      
-      // Update anim state
       if (vLenSq(p.vel) > 10) {
         p.state = 'RUN';
         p.animTimer += dt;
@@ -63,13 +76,11 @@ export function updatePhysics(dt: number, input: InputCommand) {
         p.animTimer = 0;
       }
     } else {
-       // Human pos update
       if (vLenSq(p.vel) > 0) {
         p.pos = vAdd(p.pos, vMul(p.vel, dt));
-        // facing updated in applyPlayerMovement
       }
     }
-    
+
     updateSpriteName(p);
     clampToField(p);
   });
@@ -118,58 +129,44 @@ export function updatePhysics(dt: number, input: InputCommand) {
   }
   for (const tr of state.ball.trail) tr.alpha *= 0.8;
 
-  // 4. Possession & Tackle
+  // 4. Possession (free ball only) & Slide-tackle steal
   state.players.forEach(p => {
+    const ballOwned = state.ball.lastTouchedBy !== null;
     const distToBall = vDist(p.pos, state.ball.pos);
     const relSpeed = vLen(vSub(p.vel, state.ball.vel));
 
-    // Touch window: player must be in range for 150ms before gaining possession
-    if (distToBall < 20 && relSpeed < 300 && state.ball.z <= 1.05) {
-      // Currently in range — countdown touch window
+    // Free ball pickup — only when ball has no owner
+    if (!ballOwned && distToBall < 20 && relSpeed < 300 && state.ball.z <= 1.05) {
       if (p.touchWindowTimer > 0) {
         p.touchWindowTimer -= dt;
       } else {
-        // Window elapsed — grant possession
         state.ball.lastTouchedBy = p.id;
         state.ball.lastTouchTeam = p.team;
         p.lastTouchTime = Date.now();
-
-        // Match velocity only — no position snap to avoid teleportation
         state.ball.vel = p.vel;
-        state.ball.z = 1; // ground the ball on pickup
-
-        // Auto-switch to possessor
+        state.ball.z = 1;
         if (p.team === 'BLUE' && !p.isHuman) {
           if (state.humanPlayerId !== null) state.players[state.humanPlayerId].isHuman = false;
           p.isHuman = true;
           state.humanPlayerId = p.id;
         }
       }
-    } else {
-      // Out of range — reset touch window so next approach requires full 150ms
-      if (distToBall > 22 || relSpeed >= 300) {
-        p.touchWindowTimer = 0.15;
-      }
+    } else if (distToBall > 22 || relSpeed >= 300 || ballOwned) {
+      p.touchWindowTimer = 0.15;
     }
-    
-    // Tackle
-    if (state.ball.lastTouchedBy !== null && state.ball.lastTouchedBy !== p.id) {
-        const carrier = state.players.find(x => x.id === state.ball.lastTouchedBy);
-        if (carrier && carrier.team !== p.team) {
-            if (vDist(p.pos, carrier.pos) < 32) {
-                const toTackler = vNorm(vSub(p.pos, carrier.pos));
-                const dot = carrier.facing.x * toTackler.x + carrier.facing.y * toTackler.y;
-                if (dot < 0.85) {
-                    state.ball.lastTouchedBy = null;
-                    // Knock the ball loose past the tackler so the carrier's magnet doesn't re-grab it
-                    const knockDir = vNorm(vSub(p.pos, carrier.pos));
-                    state.ball.vel = vMul(knockDir, 260);
-                    state.ball.pos = vAdd(carrier.pos, vMul(knockDir, 42));
-                    p.lastTouchTime = Date.now();
-                    playSfx("tackle");
-                }
-            }
-        }
+
+    // Slide-tackle: only a SLIDING player can steal from the carrier
+    if (p.state === 'SLIDE' && ballOwned && state.ball.lastTouchedBy !== p.id) {
+      const carrier = state.players.find(x => x.id === state.ball.lastTouchedBy);
+      if (carrier && carrier.team !== p.team && vDist(p.pos, carrier.pos) < 38) {
+        state.ball.lastTouchedBy = null;
+        const knockDir = vNorm(vSub(carrier.pos, p.pos));
+        state.ball.vel = vMul(knockDir, 280);
+        state.ball.pos = vAdd(carrier.pos, vMul(knockDir, 30));
+        state.ball.z = 1;
+        p.lastTouchTime = Date.now();
+        playSfx("tackle");
+      }
     }
   });
 
@@ -214,7 +211,26 @@ function applyPlayerMovement(p: Player, moveDir: Vector2, sprintInput: boolean, 
   }
 }
 
+export function tryStartSlide(p: Player, moveDir: Vector2) {
+    if (p.slideCooldown > 0 || p.state === 'SLIDE') return;
+    // Carrier cannot slide (slide is for stealing)
+    if (state.ball.lastTouchedBy === p.id) return;
+    let dir = vLenSq(moveDir) > 0 ? vNorm(moveDir) : (vLenSq(p.facing) > 0 ? vNorm(p.facing) : v2(1, 0));
+    p.slideDir = dir;
+    p.facing = dir;
+    p.vel = vMul(dir, 360);
+    p.state = 'SLIDE';
+    p.slideTimer = 0.5;
+    p.slideCooldown = 5;
+    p.animTimer = 0;
+    playSfx("slide");
+}
+
 function updateSpriteName(p: Player) {
+    if (p.state === 'SLIDE') {
+        p.spriteName = 'slide';
+        return;
+    }
     if (p.state === 'SHOOT') {
         p.spriteName = 'shoot';
         return;

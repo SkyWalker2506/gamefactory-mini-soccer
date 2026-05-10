@@ -9,7 +9,7 @@ export function vNorm(a: Vector2): Vector2 { const l = vLen(a); return l > 0 ? v
 export function vDist(a: Vector2, b: Vector2): number { return vLen(vSub(a, b)); }
 
 export type Team = 'BLUE' | 'RED';
-export type PlayerState = 'IDLE' | 'RUN' | 'SHOOT' | 'TACKLE';
+export type PlayerState = 'IDLE' | 'RUN' | 'SHOOT' | 'TACKLE' | 'SLIDE';
 export type MatchState = 'TITLE' | 'KICKOFF' | 'PLAY' | 'GOAL' | 'END';
 export type Role = 'BALL_CARRIER' | 'LANE_RUNNER_1' | 'LANE_RUNNER_2' | 'PRESSURER' | 'MARKER' | 'SWEEPER';
 
@@ -28,9 +28,12 @@ export interface Player {
   roleAnchor: Vector2;
   isHuman: boolean;
   animTimer: number;
-  spriteName: 'idle' | 'up' | 'down' | 'right' | 'left' | 'shoot';
+  spriteName: 'idle' | 'up' | 'down' | 'right' | 'left' | 'shoot' | 'slide';
   lastTouchTime: number;
   touchWindowTimer: number;
+  slideCooldown: number;
+  slideTimer: number;
+  slideDir: Vector2;
 }
 
 export interface Ball {
@@ -49,6 +52,7 @@ export interface InputCommand {
   shoot: boolean;
   switchPlayer: boolean;
   pause: boolean;
+  slide: boolean;
 }
 
 export interface GameState {

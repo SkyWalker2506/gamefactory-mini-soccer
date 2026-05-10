@@ -5,6 +5,8 @@ const ASSET_PATHS = {
   down: new URL("../../assets/running-down-nonbg.png", import.meta.url).href,
   right: new URL("../../assets/running-right-nonbg.png", import.meta.url).href,
   shoot: new URL("../../assets/shoot-right-nonbg.png", import.meta.url).href,
+  slideBlue: new URL("../../assets/slide-blue.png", import.meta.url).href,
+  slideRed: new URL("../../assets/slide-red.png", import.meta.url).href,
 };
 
 export interface SpriteSet {
@@ -19,7 +21,9 @@ export const assets: {
   ball: HTMLImageElement | null;
   blue: SpriteSet | null;
   red: SpriteSet | null;
-} = { field: null, ball: null, blue: null, red: null };
+  slideBlue: HTMLImageElement | null;
+  slideRed: HTMLImageElement | null;
+} = { field: null, ball: null, blue: null, red: null, slideBlue: null, slideRed: null };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -114,6 +118,14 @@ export async function preloadAndTintAssets(): Promise<void> {
   assets.ball = ball;
   assets.blue = { up: up.blue, down: down.blue, right: right.blue, shoot: shoot.blue };
   assets.red = { up: up.red, down: down.red, right: right.red, shoot: shoot.red };
+
+  // Optional slide sprites — load if present, ignore if missing
+  const [sb, sr] = await Promise.all([
+    loadImage(ASSET_PATHS.slideBlue).catch(() => null),
+    loadImage(ASSET_PATHS.slideRed).catch(() => null),
+  ]);
+  assets.slideBlue = sb;
+  assets.slideRed = sr;
 }
 
 export function playSfx(_name: string): void {
