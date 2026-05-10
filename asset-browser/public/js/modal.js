@@ -73,6 +73,9 @@ export function openModal(id) {
     import('./sprite-preview.js').then(m => {
       _modalCleanup = m.attachSpritePreview(document.getElementById('box'), i);
     });
+    import('./frame-editor.js').then(m => {
+      m.attachFrameEditor(document.getElementById('box'), i);
+    });
   }
 }
 
