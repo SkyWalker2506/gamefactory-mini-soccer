@@ -73,10 +73,12 @@ export function openModal(id) {
     import('./sprite-preview.js').then(m => {
       _modalCleanup = m.attachSpritePreview(document.getElementById('box'), i);
     });
-    import('./frame-editor.js').then(m => {
-      m.attachFrameEditor(document.getElementById('box'), i);
-    });
   }
+  // Frame editor is attached for ALL image assets — lets user define/edit
+  // frames + tags + fps even on a still image (convert to animation).
+  import('./frame-editor.js').then(m => {
+    m.attachFrameEditor(document.getElementById('box'), i);
+  });
 }
 
 export function closeModal() {
