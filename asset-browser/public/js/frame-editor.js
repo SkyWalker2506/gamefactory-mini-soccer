@@ -2,7 +2,7 @@
 // On Save: emits new frames JSON to clipboard for paste into config.json overrides.
 
 export function attachFrameEditor(modalBox, asset) {
-  if (!asset.frames && !(asset.cols && asset.rows)) return null;
+  // Always attach — user may want to convert a still image into a sprite sheet
 
   const wrap = document.createElement('details');
   wrap.style.cssText = 'margin-top:12px;width:100%';
@@ -40,7 +40,35 @@ export function attachFrameEditor(modalBox, asset) {
   const eqBtn    = mkBtn('↔ Eşit Böl',  '#ffeb3b');
   const gapBtn   = mkBtn('🔍 Boşluğa Göre',  '#ffeb3b');
   const copyBtn  = mkBtn('📋 JSON Kopyala', '#7fcfa0');
-  ctrls.append(addBtn, delBtn, eqBtn, gapBtn, copyBtn);
+  const saveBtn  = mkBtn('💾 Kaydet (config.json)', '#ffeb3b');
+  saveBtn.style.fontWeight = '700';
+  ctrls.append(addBtn, delBtn, eqBtn, gapBtn, copyBtn, saveBtn);
+
+  // Metadata row: tags + fps + animation toggle
+  const meta = document.createElement('div');
+  meta.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 0;border-top:1px solid #2d6e3d;margin-top:4px';
+  const lbl = (txt) => { const s = document.createElement('span'); s.textContent = txt; s.style.cssText = 'color:#7da888;font-size:11px;font-weight:600'; return s; };
+  const tagInput = document.createElement('input');
+  tagInput.type = 'text';
+  tagInput.placeholder = 'tag1, tag2, animation, slide …';
+  tagInput.value = (asset.tags || []).join(', ');
+  tagInput.style.cssText = 'flex:1;min-width:200px;background:#0a2d14;color:#f0fff5;border:1px solid #2d6e3d;border-radius:4px;padding:6px;font-size:12px';
+  const fpsInput = document.createElement('input');
+  fpsInput.type = 'number'; fpsInput.min = '1'; fpsInput.max = '60';
+  fpsInput.value = asset.fps || 12;
+  fpsInput.style.cssText = 'width:60px;background:#0a2d14;color:#f0fff5;border:1px solid #2d6e3d;border-radius:4px;padding:6px;font-size:12px';
+  const animChk = document.createElement('input');
+  animChk.type = 'checkbox';
+  animChk.checked = (asset.kind === 'Animation') || (asset.tags || []).includes('animation');
+  const animLbl = document.createElement('label');
+  animLbl.style.cssText = 'color:#f0fff5;font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer';
+  animLbl.append(animChk, document.createTextNode('Animasyon'));
+  meta.append(lbl('Tags:'), tagInput, lbl('FPS:'), fpsInput, animLbl);
+  editor.appendChild(meta);
+
+  const status = document.createElement('div');
+  status.style.cssText = 'font-size:11px;color:#7da888;min-height:14px';
+  editor.appendChild(status);
 
   const out = document.createElement('textarea');
   out.style.cssText = 'width:100%;min-height:80px;background:#0a2d14;color:#f0fff5;border:1px solid #2d6e3d;border-radius:4px;padding:6px;font-family:ui-monospace,Menlo,monospace;font-size:11px';
@@ -66,7 +94,12 @@ export function attachFrameEditor(modalBox, asset) {
     bounds = [];
     for (let i = 0; i <= asset.cols; i++) bounds.push(Math.round(i * fw));
   } else {
+    // No frame info — start with a single frame spanning the whole image
     bounds = [0, W];
+  }
+  if (!W || !H) {
+    info.textContent = 'Boyut bilgisi yok — manifesti yeniden build edip tekrar dene.';
+    return null;
   }
 
   const img = new Image();
@@ -237,6 +270,40 @@ export function attachFrameEditor(modalBox, asset) {
     }
     bounds.push(W);
     render();
+  };
+  saveBtn.onclick = async () => {
+    const frames = [];
+    for (let i = 0; i < bounds.length - 1; i++) {
+      frames.push({ x: bounds[i], y: 0, w: bounds[i+1] - bounds[i], h: H });
+    }
+    const tags = tagInput.value.split(',').map(s => s.trim()).filter(Boolean);
+    if (animChk.checked && !tags.includes('animation')) tags.unshift('animation');
+    if (!animChk.checked) {
+      const idx = tags.indexOf('animation');
+      if (idx >= 0) tags.splice(idx, 1);
+    }
+    const override = {
+      frames: frames.length > 1 ? frames : undefined,
+      fps: parseInt(fpsInput.value) || 12,
+      tags: tags.length ? tags : undefined,
+    };
+    Object.keys(override).forEach(k => override[k] === undefined && delete override[k]);
+    status.textContent = 'Kaydediliyor…';
+    status.style.color = '#7da888';
+    try {
+      const res = await fetch('/api/save-overrides', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: asset.name, override }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      status.textContent = `✓ Kaydedildi → config.json + manifest yeniden build edildi (${frames.length} frame)`;
+      status.style.color = '#7fcfa0';
+    } catch (e) {
+      status.textContent = `✗ Hata: ${e.message} — JSON kopyala butonunu kullanıp manuel ekle`;
+      status.style.color = '#ff8888';
+    }
   };
   copyBtn.onclick = async () => {
     syncOutput();

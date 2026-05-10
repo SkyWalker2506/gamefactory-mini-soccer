@@ -2,42 +2,175 @@
   "title": "Mini Soccer",
   "projectRoot": "..",
   "sources": [
-    { "dir": "assets", "category": "Assets", "tag": "asset" }
+    {
+      "dir": "assets",
+      "category": "Assets",
+      "tag": "asset"
+    }
   ],
-  "github": { "owner": "SkyWalker2506", "repo": "gamefactory-mini-soccer", "branch": "main" },
+  "github": {
+    "owner": "SkyWalker2506",
+    "repo": "gamefactory-mini-soccer",
+    "branch": "main"
+  },
   "uploadPath": "asset-browser/data/uploads",
   "overrides": {
     "slide-blue": {
-      "tags": ["animation", "slide", "blue", "team-blue"],
+      "tags": [
+        "animation",
+        "slide",
+        "blue",
+        "team-blue"
+      ],
       "fps": 16,
       "frames": [
-        { "x": 8,    "y": 0, "w": 160, "h": 1024 },
-        { "x": 167,  "y": 0, "w": 175, "h": 1024 },
-        { "x": 341,  "y": 0, "w": 225, "h": 1024 },
-        { "x": 565,  "y": 0, "w": 215, "h": 1024 },
-        { "x": 779,  "y": 0, "w": 211, "h": 1024 },
-        { "x": 990,  "y": 0, "w": 203, "h": 1024 },
-        { "x": 1192, "y": 0, "w": 160, "h": 1024 },
-        { "x": 1352, "y": 0, "w": 167, "h": 1024 }
+        {
+          "x": 8,
+          "y": 0,
+          "w": 160,
+          "h": 1024
+        },
+        {
+          "x": 167,
+          "y": 0,
+          "w": 175,
+          "h": 1024
+        },
+        {
+          "x": 341,
+          "y": 0,
+          "w": 225,
+          "h": 1024
+        },
+        {
+          "x": 565,
+          "y": 0,
+          "w": 215,
+          "h": 1024
+        },
+        {
+          "x": 779,
+          "y": 0,
+          "w": 211,
+          "h": 1024
+        },
+        {
+          "x": 990,
+          "y": 0,
+          "w": 203,
+          "h": 1024
+        },
+        {
+          "x": 1192,
+          "y": 0,
+          "w": 160,
+          "h": 1024
+        },
+        {
+          "x": 1352,
+          "y": 0,
+          "w": 167,
+          "h": 1024
+        }
       ]
     },
     "slide-red": {
-      "tags": ["animation", "slide", "red", "team-red"],
+      "tags": [
+        "animation",
+        "slide",
+        "red",
+        "team-red"
+      ],
       "fps": 16,
       "frames": [
-        { "x": 9,    "y": 0, "w": 167, "h": 941 },
-        { "x": 176,  "y": 0, "w": 178, "h": 941 },
-        { "x": 354,  "y": 0, "w": 232, "h": 941 },
-        { "x": 585,  "y": 0, "w": 228, "h": 941 },
-        { "x": 812,  "y": 0, "w": 238, "h": 941 },
-        { "x": 1049, "y": 0, "w": 235, "h": 941 },
-        { "x": 1283, "y": 0, "w": 181, "h": 941 },
-        { "x": 1464, "y": 0, "w": 183, "h": 941 }
+        {
+          "x": 9,
+          "y": 0,
+          "w": 167,
+          "h": 941
+        },
+        {
+          "x": 176,
+          "y": 0,
+          "w": 178,
+          "h": 941
+        },
+        {
+          "x": 354,
+          "y": 0,
+          "w": 232,
+          "h": 941
+        },
+        {
+          "x": 585,
+          "y": 0,
+          "w": 228,
+          "h": 941
+        },
+        {
+          "x": 812,
+          "y": 0,
+          "w": 238,
+          "h": 941
+        },
+        {
+          "x": 1049,
+          "y": 0,
+          "w": 235,
+          "h": 941
+        },
+        {
+          "x": 1283,
+          "y": 0,
+          "w": 181,
+          "h": 941
+        },
+        {
+          "x": 1464,
+          "y": 0,
+          "w": 183,
+          "h": 941
+        }
       ]
     },
-    "running-up-nonbg":    { "tags": ["animation", "run", "up"],    "cols": 8, "rows": 1, "fps": 12 },
-    "running-down-nonbg":  { "tags": ["animation", "run", "down"],  "cols": 8, "rows": 1, "fps": 12 },
-    "running-right-nonbg": { "tags": ["animation", "run", "right"], "cols": 8, "rows": 1, "fps": 12 },
-    "shoot-right-nonbg":   { "tags": ["animation", "shoot"],        "cols": 6, "rows": 1, "fps": 18 }
+    "running-up-nonbg": {
+      "tags": [
+        "animation",
+        "run",
+        "up"
+      ],
+      "cols": 8,
+      "rows": 1,
+      "fps": 12
+    },
+    "running-down-nonbg": {
+      "tags": [
+        "animation",
+        "run",
+        "down"
+      ],
+      "cols": 8,
+      "rows": 1,
+      "fps": 12
+    },
+    "running-right-nonbg": {
+      "tags": [
+        "animation",
+        "run",
+        "right"
+      ],
+      "cols": 8,
+      "rows": 1,
+      "fps": 12
+    },
+    "shoot-right-nonbg": {
+      "tags": [
+        "animation",
+        "shoot"
+      ],
+      "cols": 6,
+      "rows": 1,
+      "fps": 18
+    }
   }
 }

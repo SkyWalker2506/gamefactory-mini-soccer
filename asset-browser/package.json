@@ -15,7 +15,7 @@
     "test": "node --test api/_handler.test.js api/_ratelimit.test.js api/_modules.test.js api/_health.test.js api/_headers.test.js api/a11y.test.js api/_i18n.test.js api/_pwa.test.js api/_logger.test.js api/_perf-budget.test.js api/_upload-multi.test.js api/_bulk-tags.test.js api/_sprite-preview.test.js api/_bulk-tags.functional.test.js api/_backup.test.js api/_restore.test.js api/_audit.test.js api/_trash-retention.test.js",
     "lint": "node --check api/*.js scripts/*.mjs",
     "ci": "npm run lint && npm run test && npm run validate && npm run smoke && npm run perf",
-    "dev": "npm run build && npx serve public -l 5174",
+    "dev": "npm run build && node scripts/dev-server.mjs",
     "start": "npm run build"
   },
   "engines": {
