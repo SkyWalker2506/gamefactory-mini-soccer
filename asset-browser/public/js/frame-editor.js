@@ -75,8 +75,10 @@ export function attachFrameEditor(modalBox, asset) {
   out.readOnly = true;
   editor.appendChild(out);
 
-  const p = modalBox.querySelector('.preview') || modalBox;
-  p.appendChild(wrap);
+  // Append editor outside .preview (which sprite-preview overwrites) — directly to box
+  // and span both columns so it sits below preview+details.
+  wrap.style.gridColumn = '1 / -1';
+  modalBox.appendChild(wrap);
 
   // Build initial boundaries from asset.frames or cols
   const [W, H] = (asset.dim || '0x0').split('x').map(Number);
@@ -298,8 +300,11 @@ export function attachFrameEditor(modalBox, asset) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || res.statusText);
-      status.textContent = `✓ Kaydedildi → config.json + manifest yeniden build edildi (${frames.length} frame)`;
+      status.textContent = `✓ Kaydedildi → config.json + manifest yeniden build edildi (${frames.length} frame). Animasyon güncelleniyor…`;
       status.style.color = '#7fcfa0';
+      // Notify other parts of the UI that the manifest changed → reopen modal so
+      // sprite preview picks up new frames.
+      window.dispatchEvent(new CustomEvent('manifest-saved', { detail: { name: asset.name } }));
     } catch (e) {
       status.textContent = `✗ Hata: ${e.message} — JSON kopyala butonunu kullanıp manuel ekle`;
       status.style.color = '#ff8888';

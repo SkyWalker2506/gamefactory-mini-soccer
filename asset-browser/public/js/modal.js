@@ -81,6 +81,27 @@ export function openModal(id) {
   });
 }
 
+// After save: refetch manifest, patch in-memory store, reopen current modal so
+// sprite preview reflects the new frames immediately.
+window.addEventListener('manifest-saved', async (e) => {
+  try {
+    const res = await fetch('/manifest.json?t=' + Date.now(), { cache: 'no-store' });
+    const data = await res.json();
+    const items = data.items || [];
+    // Mutate store.data.items in place: replace entries by id
+    if (store.data && Array.isArray(store.data.items)) {
+      const byId = new Map(items.map(x => [x.id, x]));
+      store.data.items = store.data.items.map(it => byId.get(it.id) || it);
+    }
+    // Reopen the modal that was just saved
+    const name = e.detail && e.detail.name;
+    const target = items.find(x => x.name === name);
+    if (target) openModal(target.id);
+  } catch (err) {
+    console.error('manifest reload failed', err);
+  }
+});
+
 export function closeModal() {
   if (_modalCleanup) _modalCleanup();
   _modalCleanup = null;
