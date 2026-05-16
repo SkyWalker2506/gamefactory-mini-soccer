@@ -225,7 +225,7 @@ function decideAction(p: Player) {
         const carrier = state.ball.lastTouchedBy !== null ? state.players.find(x => x.id === state.ball.lastTouchedBy) : null;
         if (carrier && carrier.team !== p.team && p.slideCooldown <= 0) {
             const d = vDist(p.pos, carrier.pos);
-            if (d < 70 && d > 20) {
+            if (d < 70 && d > 4) {
                 if (!tickReaction(p, lastTickDt)) {
                     // Still reacting — keep closing on the carrier instead of sliding.
                 } else {
@@ -240,7 +240,6 @@ function decideAction(p: Player) {
         }
     }
     if (p.role === 'PRESSURER') {
-        // If ball is loose, sprint directly to ball; otherwise intercept between ball and own goal
         const isLoose = state.ball.lastTouchedBy === null;
         let targetPos;
         if (isLoose) {
@@ -249,7 +248,12 @@ function decideAction(p: Player) {
             const ballToGoal = vNorm(vSub(v2(ownGoalX, 360), state.ball.pos));
             targetPos = vAdd(state.ball.pos, vMul(ballToGoal, 25));
         }
-        p.vel = vMul(vNorm(vSub(targetPos, p.pos)), 250); // sprint
+        // Slow down within pickup range so relSpeed<60 condition can fire on loose ball.
+        // Outside ~50px: sprint. Within: scale to ~6*dist so 8px≈48px/s grabs cleanly.
+        const dist = vDist(p.pos, targetPos);
+        const speed = isLoose && dist < 50 ? Math.max(30, dist * 6) : 250;
+        const dir = dist > 0.01 ? vNorm(vSub(targetPos, p.pos)) : v2(0, 0);
+        p.vel = vMul(dir, speed);
     } else if (p.role === 'SWEEPER') {
         // Position centrally between ball and own goal
         const midX = (state.ball.pos.x + ownGoalX) / 2;

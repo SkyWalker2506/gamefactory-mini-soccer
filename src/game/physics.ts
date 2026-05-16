@@ -27,16 +27,10 @@ export function updatePhysics(dt: number, input: InputCommand) {
       }
     }
 
-    // Auto-select: when ball is free (no possession), switch to closest BLUE player
-    if (state.ball.lastTouchedBy === null && state.switchCooldown <= 0) {
-      const bestId = getClosestTeammateToBall('BLUE');
-      if (bestId !== null && bestId !== state.humanPlayerId) {
-        state.players.forEach(pl => pl.isHuman = false);
-        state.players[bestId].isHuman = true;
-        state.humanPlayerId = bestId;
-        state.switchCooldown = 0.3; // prevent immediate re-override of manual picks
-      }
-    }
+    // No auto-switch while ball is loose — closest BLUE is needed by AI to
+    // chase the free ball (PRESSURER role), and switching to it would freeze
+    // them as human-with-no-input. The pickup logic below auto-promotes
+    // whichever BLUE actually grabs the ball, so user follows possession.
     
     // Apply inputs
     if (p.state !== 'SLIDE') {
