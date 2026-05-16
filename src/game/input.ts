@@ -42,7 +42,7 @@ export function getInputCommand(): InputCommand {
   const pass = singleFrameKeys.has("Space") || singleFrameKeys.has("KeyJ") || touchPassFrame;
   const shoot = singleFrameKeys.has("KeyX") || singleFrameKeys.has("KeyK") || touchShootFrame;
   const switchPlayer = singleFrameKeys.has("KeyQ") || singleFrameKeys.has("Tab");
-  const pause = singleFrameKeys.has("Escape");
+  const pause = singleFrameKeys.has("Escape") || singleFrameKeys.has("KeyP");
   const slide = singleFrameKeys.has("KeyC") || singleFrameKeys.has("KeyL");
 
   singleFrameKeys.clear();

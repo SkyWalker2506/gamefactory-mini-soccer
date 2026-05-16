@@ -11,7 +11,7 @@ export function vDist(a: Vector2, b: Vector2): number { return vLen(vSub(a, b));
 export type Team = 'BLUE' | 'RED';
 export type PlayerState = 'IDLE' | 'RUN' | 'SHOOT' | 'TACKLE' | 'SLIDE';
 export type MatchState = 'TITLE' | 'KICKOFF' | 'PLAY' | 'GOAL' | 'END';
-export type Role = 'BALL_CARRIER' | 'LANE_RUNNER_1' | 'LANE_RUNNER_2' | 'PRESSURER' | 'MARKER' | 'SWEEPER';
+export type Role = 'BALL_CARRIER' | 'LANE_RUNNER_1' | 'LANE_RUNNER_2' | 'PRESSURER' | 'MARKER' | 'SWEEPER' | 'GOALKEEPER';
 
 export interface Player {
   id: number;

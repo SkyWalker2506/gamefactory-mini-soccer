@@ -6,6 +6,19 @@ import { GameState, v2 } from "../types";
 
 export let state: GameState;
 
+// Field/goal geometry (mirrors physics.ts/match.ts constants — keep in sync)
+export const FIELD_LEFT = 60, FIELD_RIGHT = 1220, FIELD_TOP = 60, FIELD_BOTTOM = 660;
+export const GOAL_TOP_Y = 270, GOAL_BOTTOM_Y = 450;
+export const GOAL_CENTER_Y = (GOAL_TOP_Y + GOAL_BOTTOM_Y) / 2;
+
+// Difficulty presets — one aiSkill float (0..1) per GAME.md §7.4
+// Tuned so Normal feels "I lose if I'm sloppy, win if I read the field" (not deathball).
+export const DIFFICULTY_PRESETS = {
+  easy:   0.35,
+  normal: 0.55,
+  hard:   0.85,
+} as const;
+
 // Seeded PRNG
 let seed = Date.now();
 export function setSeed(s: number) { seed = s; }
@@ -36,30 +49,37 @@ export function initWorld(initialSeed: number) {
     goalFreezeTimer: 0,
     cameraShake: 0,
     netFlutter: { blue: 0, red: 0 },
-    difficulty: 0.7,
+    difficulty: DIFFICULTY_PRESETS.normal,
     seed: initialSeed,
     switchCooldown: 0,
     fx: [],
     isPaused: false
   };
 
-  // Setup players
+  // Setup players — initial roster only. resetPositionsForKickoff() in match.ts
+  // is the single source of truth for kickoff positioning; called by titleScreen/post-goal.
+  // BLUE defends LEFT goal, attacks RIGHT. RED defends RIGHT goal, attacks LEFT.
+  // id 0 = BLUE GK, ids 1-2 = BLUE outfield. id 3 = RED GK, ids 4-5 = RED outfield.
+  // Human controls id 1 (a BLUE outfielder) so they're not stuck in goal.
   for (let i = 0; i < 3; i++) {
     state.players.push({
-      id: i, team: 'BLUE', pos: v2(400, 360 + (i-1)*100), vel: v2(0, 0), facing: v2(1, 0),
+      id: i, team: 'BLUE', pos: v2(0, 0), vel: v2(0, 0), facing: v2(1, 0),
       stamina: 100, isSprinting: false, sprintCooldown: false, state: 'IDLE', stateTimer: 0,
-      role: i === 0 ? 'BALL_CARRIER' : (i === 1 ? 'LANE_RUNNER_1' : 'LANE_RUNNER_2'),
-      roleAnchor: v2(0,0), isHuman: i === 0, animTimer: 0, spriteName: 'idle', lastTouchTime: 0, touchWindowTimer: 0, slideCooldown: 0, slideTimer: 0, slideDir: v2(0, 0)
+      role: i === 0 ? 'GOALKEEPER' : (i === 1 ? 'BALL_CARRIER' : 'LANE_RUNNER_1'),
+      roleAnchor: v2(0,0), isHuman: i === 1, animTimer: 0, spriteName: 'idle',
+      lastTouchTime: 0, touchWindowTimer: 0, slideCooldown: 0, slideTimer: 0, slideDir: v2(0, 0)
     });
   }
   for (let i = 0; i < 3; i++) {
     state.players.push({
-      id: 3+i, team: 'RED', pos: v2(880, 360 + (i-1)*100), vel: v2(0, 0), facing: v2(-1, 0),
+      id: 3+i, team: 'RED', pos: v2(0, 0), vel: v2(0, 0), facing: v2(-1, 0),
       stamina: 100, isSprinting: false, sprintCooldown: false, state: 'IDLE', stateTimer: 0,
-      role: 'PRESSURER', roleAnchor: v2(0,0), isHuman: false, animTimer: 0, spriteName: 'idle', lastTouchTime: 0, touchWindowTimer: 0, slideCooldown: 0, slideTimer: 0, slideDir: v2(0, 0)
+      role: i === 0 ? 'GOALKEEPER' : 'PRESSURER',
+      roleAnchor: v2(0,0), isHuman: false, animTimer: 0, spriteName: 'idle',
+      lastTouchTime: 0, touchWindowTimer: 0, slideCooldown: 0, slideTimer: 0, slideDir: v2(0, 0)
     });
   }
-  state.humanPlayerId = 0;
+  state.humanPlayerId = 1;
 }
 
 const TICK_RATE = 60;

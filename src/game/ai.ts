@@ -1,14 +1,44 @@
 import { state } from "./world";
-import { Player, v2, vSub, vAdd, vMul, vLen, vLenSq, vNorm, vDist } from "../types";
+import { Player, v2, vSub, vAdd, vMul, vLen, vNorm, vDist } from "../types";
 import { executePass, executeShoot, tryStartSlide } from "./physics";
 
 const FIELD_LEFT = 60, FIELD_RIGHT = 1220, FIELD_TOP = 60, FIELD_BOTTOM = 660;
+const GOAL_TOP_Y = 270, GOAL_BOTTOM_Y = 450;
+const SLIDE_SPEED = 360; // px/s — matches physics.ts tryStartSlide initial velocity
+
+// Per-player reaction-delay timers. AI must "see" the situation for this long
+// before acting on a shoot/pass/press decision. Reaction shrinks with aiSkill.
+const reactionTimer = new Map<number, number>();
+
+function getReactionDelay(skill: number): number {
+    // GAME.md §7.4: 250 ms × (1 − skill) + 50 ms × skill.
+    return 0.25 * (1 - skill) + 0.05 * skill;
+}
+
+function tickReaction(p: Player, dt: number): boolean {
+    // Returns true when the player has "reacted" (timer expired).
+    const skill = state.difficulty;
+    const cur = reactionTimer.get(p.id) ?? 0;
+    if (cur <= 0) {
+        reactionTimer.set(p.id, getReactionDelay(skill));
+        return false;
+    }
+    const next = cur - dt;
+    reactionTimer.set(p.id, next);
+    return next <= 0;
+}
+
+function resetReaction(p: Player) {
+    reactionTimer.set(p.id, 0);
+}
 
 let aiTickTimer = 0;
+let lastTickDt = 0.1;
 
 export function updateAI(dt: number) {
     aiTickTimer -= dt;
     if (aiTickTimer <= 0) {
+        lastTickDt = 0.1 - aiTickTimer; // actual time since last tick
         aiTickTimer = 0.1; // 100ms tick per GDD
         assignRoles();
         state.players.forEach(p => {
@@ -24,7 +54,9 @@ export function updateAI(dt: number) {
 function applyTeammateSeparation() {
     const teams: Array<'BLUE' | 'RED'> = ['BLUE', 'RED'];
     for (const team of teams) {
-        const teammates = state.players.filter(p => p.team === team && !p.isHuman);
+        // Exclude the GK from soft separation — it must hold its goal line.
+        const teammates = state.players.filter(p =>
+            p.team === team && !p.isHuman && p.role !== 'GOALKEEPER');
         for (let i = 0; i < teammates.length; i++) {
             for (let j = i + 1; j < teammates.length; j++) {
                 const a = teammates[i];
@@ -53,8 +85,13 @@ function assignRoles() {
     }
 }
 
+// Outfielders only (GK keeps its role forever).
+function outfield(team: 'BLUE' | 'RED'): Player[] {
+    return state.players.filter(p => p.team === team && p.role !== 'GOALKEEPER');
+}
+
 function assignLooseBallRoles(team: 'BLUE' | 'RED') {
-    const teamPlayers = state.players.filter(p => p.team === team);
+    const teamPlayers = outfield(team);
     // Sort by distance to ball
     const sorted = [...teamPlayers].sort((a, b) => vDist(a.pos, state.ball.pos) - vDist(b.pos, state.ball.pos));
     sorted.forEach((p, i) => {
@@ -65,8 +102,8 @@ function assignLooseBallRoles(team: 'BLUE' | 'RED') {
 }
 
 function assignTeamRoles(team: 'BLUE' | 'RED', hasBall: boolean) {
-    const teamPlayers = state.players.filter(p => p.team === team);
-    
+    const teamPlayers = outfield(team);
+
     if (hasBall) {
         // Find carrier
         let carrierId = state.ball.lastTouchedBy;
@@ -78,7 +115,7 @@ function assignTeamRoles(team: 'BLUE' | 'RED', hasBall: boolean) {
                  if (d < minDist) { minDist = d; carrierId = p.id; }
              });
         }
-        
+
         teamPlayers.forEach(p => {
             if (p.id === carrierId && (!p.isHuman || state.ball.lastTouchedBy === p.id)) p.role = 'BALL_CARRIER';
             else if (!teamPlayers.find(x => x.role === 'LANE_RUNNER_1')) p.role = 'LANE_RUNNER_1';
@@ -92,7 +129,7 @@ function assignTeamRoles(team: 'BLUE' | 'RED', hasBall: boolean) {
             const d = vDist(p.pos, state.ball.pos);
             if (d < closestDist) { closestDist = d; pressurer = p; }
         });
-        
+
         teamPlayers.forEach(p => {
             if (p === pressurer) p.role = 'PRESSURER';
             else if (!teamPlayers.find(x => x.role === 'SWEEPER')) p.role = 'SWEEPER';
@@ -105,11 +142,16 @@ function decideAction(p: Player) {
     const targetX = p.team === 'BLUE' ? FIELD_RIGHT : FIELD_LEFT;
     const ownGoalX = p.team === 'BLUE' ? FIELD_LEFT : FIELD_RIGHT;
     const skill = state.difficulty;
-    
+
+    if (p.role === 'GOALKEEPER') {
+        decideGoalkeeper(p, ownGoalX);
+        return;
+    }
+
     if (p.role === 'BALL_CARRIER') {
         const distToGoal = vDist(p.pos, v2(targetX, 360));
         const distFactor = Math.max(0, Math.min(1, 1 - distToGoal / 600));
-        
+
         // Simple blocked fraction
         let blockers = 0;
         state.players.forEach(enemy => {
@@ -119,21 +161,28 @@ function decideAction(p: Player) {
         });
         const laneClear = Math.max(0, 1 - (blockers * 0.3));
         const shotScore = (distFactor * 0.5) + (laneClear * 0.5);
-        
+
         let pressureCount = 0;
         state.players.forEach(enemy => {
             if (enemy.team !== p.team && vDist(enemy.pos, p.pos) < 60) pressureCount++;
         });
         const pressure = Math.min(1, pressureCount / 2);
-        
-        const shotThreshold = 0.65 + (1 - skill) * 0.2;
-        
-        if (shotScore >= shotThreshold) {
+
+        // aiSkill gates BOTH thresholds — weaker AI is pickier about shots and
+        // bails to a pass under less pressure (or hesitates entirely).
+        // Easy 0.35 → shotThr 0.78 / passThr 0.85. Hard 0.85 → 0.68 / 0.62.
+        const shotThreshold = 0.65 + (1 - skill) * 0.4;
+        const passPressureThreshold = 0.5 + (1 - skill) * 0.7;
+        const reacted = tickReaction(p, lastTickDt);
+
+        if (reacted && shotScore >= shotThreshold) {
             executeShoot(p);
-        } else if (pressure >= 0.7) {
+            resetReaction(p);
+        } else if (reacted && pressure >= passPressureThreshold) {
             executePass(p);
+            resetReaction(p);
         } else {
-            // Dribble toward goal
+            // Dribble toward goal at base speed — even while "reacting".
             const aimDir = vNorm(vSub(v2(targetX, 360), p.pos));
             p.vel = vMul(aimDir, 180);
         }
@@ -171,14 +220,22 @@ function decideAction(p: Player) {
         }
         } // end else (carrier block)
     } else if (p.role === 'PRESSURER' || p.role === 'MARKER') {
-        // Try slide-tackle when close to opposing ball carrier
+        // Try slide-tackle when close to opposing ball carrier.
+        // Reaction delay also gates the slide attempt so weak AI commits late.
         const carrier = state.ball.lastTouchedBy !== null ? state.players.find(x => x.id === state.ball.lastTouchedBy) : null;
         if (carrier && carrier.team !== p.team && p.slideCooldown <= 0) {
             const d = vDist(p.pos, carrier.pos);
             if (d < 70 && d > 20) {
-                const dir = vNorm(vSub(vAdd(carrier.pos, vMul(carrier.vel, 0.15)), p.pos));
-                tryStartSlide(p, dir);
-                return;
+                if (!tickReaction(p, lastTickDt)) {
+                    // Still reacting — keep closing on the carrier instead of sliding.
+                } else {
+                    // Lead-time scales with range: long slides need more projection.
+                    const lead = Math.min(0.4, Math.max(0.1, d / SLIDE_SPEED));
+                    const dir = vNorm(vSub(vAdd(carrier.pos, vMul(carrier.vel, lead)), p.pos));
+                    tryStartSlide(p, dir);
+                    resetReaction(p);
+                    return;
+                }
             }
         }
     }
@@ -224,5 +281,50 @@ function decideAction(p: Player) {
         } else {
             p.vel = v2(0,0);
         }
+    }
+}
+
+function decideGoalkeeper(p: Player, ownGoalX: number) {
+    // Goalkeeper anchors on own goal-mouth center and slides vertically to
+    // shadow the ball's Y. If the ball is close and moving toward the goal,
+    // the keeper dives out at sprint speed to smother it.
+    const ball = state.ball;
+
+    // Anchor X is 30 px inside own goal (keeps GK on its line, never wanders).
+    const dirIntoField = ownGoalX === FIELD_LEFT ? 1 : -1;
+    const anchorX = ownGoalX + dirIntoField * 30;
+
+    // Track ball.y, clamped to goal-mouth.
+    const trackY = Math.max(GOAL_TOP_Y + 10, Math.min(GOAL_BOTTOM_Y - 10, ball.pos.y));
+
+    // Dive condition: ball within 80 px of own goal AND moving toward it.
+    const dxBall = ball.pos.x - ownGoalX;
+    const distXToGoal = Math.abs(dxBall);
+    const ballMovingToGoal = ownGoalX === FIELD_LEFT ? ball.vel.x < -20 : ball.vel.x > 20;
+    const shouldDive = distXToGoal < 80 && ballMovingToGoal;
+
+    let target;
+    let speed;
+    if (shouldDive) {
+        target = { x: ball.pos.x, y: ball.pos.y };
+        speed = 250; // sprint
+    } else {
+        target = { x: anchorX, y: trackY };
+        speed = 180;
+    }
+
+    // Hard clamp: GK never strays more than 40 px from goal-mouth center on X
+    // when not diving, so it stays "near own goal-mouth center" as specified.
+    if (!shouldDive) {
+        const goalMouthCenterX = ownGoalX + dirIntoField * 20;
+        target.x = Math.max(goalMouthCenterX - 40, Math.min(goalMouthCenterX + 40, target.x));
+    }
+
+    const toTarget = vSub(target, p.pos);
+    const distToTarget = vLen(toTarget);
+    if (distToTarget < 4) {
+        p.vel = v2(0, 0);
+    } else {
+        p.vel = vMul(vNorm(toTarget), speed);
     }
 }

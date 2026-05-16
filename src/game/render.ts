@@ -91,9 +91,12 @@ export function render(ctx: CanvasRenderingContext2D) {
           const progress = Math.min(1, p.animTimer / 0.5);
           const idx = Math.min(frames.length - 1, Math.floor(progress * frames.length));
           const sprite = frames[idx];
-          const targetH = 180;
+          // Slide frames are very tall+narrow (~1024h x ~200w). Use shorter target
+          // height so visual footprint matches running players, and derive width
+          // from native aspect ratio to avoid horizontal stretch.
+          const targetH = 110;
           const dh = targetH;
-          const dw = sprite.width / sprite.height * dh;
+          const dw = dh * (sprite.width / sprite.height);
           // Use facing.x to determine flip; for pure up/down slides default to right
           const flipX = p.facing.x < -0.01;
           ctx.save();
@@ -179,6 +182,43 @@ export function render(ctx: CanvasRenderingContext2D) {
     }
   });
 
+  // Pass target indicator — for the human carrier, show who would receive an auto-pass.
+  // Heuristic (independent of physics.ts): nearest teammate ahead of the carrier (toward
+  // attack direction = +X for BLUE, -X for RED) with no enemy within 30px of the pass line.
+  {
+    const human = state.players.find(p => p.isHuman);
+    const carriesBall = human && Math.hypot(human.pos.x - state.ball.pos.x, human.pos.y - state.ball.pos.y) < 28;
+    if (human && carriesBall) {
+      const dirX = human.team === 'BLUE' ? 1 : -1;
+      const mates = state.players.filter(p => p.team === human.team && p.id !== human.id && (p.pos.x - human.pos.x) * dirX > 0);
+      const foes = state.players.filter(p => p.team !== human.team);
+      let best: typeof human | null = null;
+      let bestD = Infinity;
+      for (const m of mates) {
+        const dx = m.pos.x - human.pos.x, dy = m.pos.y - human.pos.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 60 || d > 420 || d >= bestD) continue;
+        const blocked = foes.some(f => {
+          const t = ((f.pos.x - human.pos.x) * dx + (f.pos.y - human.pos.y) * dy) / (d * d);
+          if (t <= 0 || t >= 1) return false;
+          const px = human.pos.x + dx * t, py = human.pos.y + dy * t;
+          return Math.hypot(f.pos.x - px, f.pos.y - py) < 30;
+        });
+        if (!blocked) { best = m; bestD = d; }
+      }
+      if (best) {
+        ctx.save();
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.arc(best.pos.x, best.pos.y, 22, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
   // Ball drawn on top so it's never hidden by players
   {
     const b = state.ball;
@@ -227,13 +267,22 @@ export function render(ctx: CanvasRenderingContext2D) {
   drawControls(ctx);
 
   if (state.matchState === 'KICKOFF') {
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 72px sans-serif';
-    ctx.textAlign = 'center';
     const text = Math.ceil(state.kickoffTimer) > 0 ? Math.ceil(state.kickoffTimer).toString() : 'GO!';
-    ctx.fillText(text, 640, 360);
+    ctx.save();
+    ctx.font = 'bold 96px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+    ctx.lineWidth = 6;
     ctx.strokeStyle = '#000';
     ctx.strokeText(text, 640, 360);
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, 640, 360);
+    ctx.restore();
   }
 
   ctx.restore();
@@ -270,7 +319,7 @@ function drawControls(ctx: CanvasRenderingContext2D) {
     { key: 'X / K',       action: 'Şut' },
     { key: 'C / L',       action: 'Kayma (5sn)' },
     { key: 'Q / Tab',     action: 'Oyuncu değiştir' },
-    { key: 'Esc',         action: 'Duraklat' },
+    { key: 'Esc / P',     action: 'Duraklat' },
   ];
   const x0 = 12, y0 = PITCH_H - 12 - controls.length * 18;
   ctx.save();

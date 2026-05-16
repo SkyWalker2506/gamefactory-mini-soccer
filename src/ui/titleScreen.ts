@@ -1,15 +1,30 @@
 import { state, initWorld } from "../game/world";
 import { resetPositionsForKickoff } from "../game/match";
 
+export function startMatch(uiRoot: HTMLElement, difficulty: number) {
+  const params = new URLSearchParams(window.location.search);
+  const seedParam = params.get('seed');
+  const initialSeed = seedParam ? parseInt(seedParam, 10) : Date.now();
+
+  initWorld(initialSeed);
+  state.difficulty = difficulty;
+  resetPositionsForKickoff('BLUE');
+  state.matchState = 'KICKOFF';
+  state.kickoffTimer = 3;
+
+  uiRoot.innerHTML = '';
+  mountHUD(uiRoot);
+}
+
 export function mountTitleScreen(uiRoot: HTMLElement) {
   uiRoot.innerHTML = `
     <div id="title-screen" style="width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.8); color:#fff; pointer-events:auto;">
       <h1 style="font-size: 64px; margin-bottom: 20px;">MINI SOCCER</h1>
-      
+
       <div style="margin-bottom: 30px; font-size: 20px;">
-        <label><input type="radio" name="diff" value="0.4"> Easy</label>
-        <label style="margin: 0 15px;"><input type="radio" name="diff" value="0.7" checked> Normal</label>
-        <label><input type="radio" name="diff" value="0.95"> Hard</label>
+        <label><input type="radio" name="diff" value="0.35"> Easy</label>
+        <label style="margin: 0 15px;"><input type="radio" name="diff" value="0.55" checked> Normal</label>
+        <label><input type="radio" name="diff" value="0.85"> Hard</label>
       </div>
 
       <button id="btn-play" style="font-size: 32px; padding: 15px 40px; background: #4488ff; color: white; border: none; border-radius: 8px; cursor: pointer;">PLAY</button>
@@ -18,19 +33,7 @@ export function mountTitleScreen(uiRoot: HTMLElement) {
 
   document.getElementById("btn-play")?.addEventListener("click", () => {
     const diff = parseFloat((document.querySelector('input[name="diff"]:checked') as HTMLInputElement).value);
-    
-    const params = new URLSearchParams(window.location.search);
-    const seedParam = params.get('seed');
-    const initialSeed = seedParam ? parseInt(seedParam, 10) : Date.now();
-    
-    initWorld(initialSeed);
-    state.difficulty = diff;
-    resetPositionsForKickoff('BLUE');
-    state.matchState = 'KICKOFF';
-    state.kickoffTimer = 3;
-    
-    uiRoot.innerHTML = '';
-    mountHUD(uiRoot);
+    startMatch(uiRoot, diff);
   });
 }
 

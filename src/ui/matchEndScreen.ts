@@ -1,5 +1,5 @@
 import { state } from "../game/world";
-import { mountTitleScreen } from "./titleScreen";
+import { mountTitleScreen, startMatch } from "./titleScreen";
 
 export function mountMatchEndScreen(uiRoot: HTMLElement) {
   let resultText = "DRAW";
@@ -22,9 +22,9 @@ export function mountMatchEndScreen(uiRoot: HTMLElement) {
   uiRoot.appendChild(panel);
 
   document.getElementById("btn-again")?.addEventListener("click", () => {
-     uiRoot.innerHTML = '';
-     mountTitleScreen(uiRoot);
-     document.getElementById("btn-play")?.click();
+    const lastDifficulty = state.difficulty || 0.7;
+    uiRoot.innerHTML = '';
+    startMatch(uiRoot, lastDifficulty);
   });
 
   document.getElementById("btn-menu")?.addEventListener("click", () => {

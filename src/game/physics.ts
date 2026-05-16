@@ -109,10 +109,18 @@ export function updatePhysics(dt: number, input: InputCommand) {
   state.players.forEach(p => clampToField(p));
 
   // 3. Ball physics
-  state.ball.vel = vMul(state.ball.vel, BALL_FRICTION);
-  if (vLenSq(state.ball.vel) < 10) state.ball.vel = v2(0, 0);
-  
-  state.ball.pos = vAdd(state.ball.pos, vMul(state.ball.vel, dt));
+  const carrier = state.ball.lastTouchedBy !== null
+    ? state.players.find(pl => pl.id === state.ball.lastTouchedBy)
+    : null;
+
+  if (carrier && state.ball.z <= 1.05) {
+    state.ball.vel = carrier.vel;
+    state.ball.pos = vAdd(state.ball.pos, vMul(state.ball.vel, dt));
+  } else {
+    state.ball.vel = vMul(state.ball.vel, BALL_FRICTION);
+    if (vLenSq(state.ball.vel) < 10) state.ball.vel = v2(0, 0);
+    state.ball.pos = vAdd(state.ball.pos, vMul(state.ball.vel, dt));
+  }
   
   // Z trajectory visual
   if (state.ball.z > 1) {
@@ -135,8 +143,8 @@ export function updatePhysics(dt: number, input: InputCommand) {
     const distToBall = vDist(p.pos, state.ball.pos);
     const relSpeed = vLen(vSub(p.vel, state.ball.vel));
 
-    // Free ball pickup — only when ball has no owner
-    if (!ballOwned && distToBall < 20 && relSpeed < 300 && state.ball.z <= 1.05) {
+    // Free ball pickup — only when ball has no owner (magnet: 20px + relSpeed < 60)
+    if (!ballOwned && distToBall < 20 && relSpeed < 60 && state.ball.z <= 1.05) {
       if (p.touchWindowTimer > 0) {
         p.touchWindowTimer -= dt;
       } else {
@@ -151,7 +159,7 @@ export function updatePhysics(dt: number, input: InputCommand) {
           state.humanPlayerId = p.id;
         }
       }
-    } else if (distToBall > 22 || relSpeed >= 300 || ballOwned) {
+    } else if (distToBall > 22 || relSpeed >= 60 || ballOwned) {
       p.touchWindowTimer = 0.15;
     }
 
@@ -221,7 +229,7 @@ export function tryStartSlide(p: Player, moveDir: Vector2) {
     p.vel = vMul(dir, 360);
     p.state = 'SLIDE';
     p.slideTimer = 0.5;
-    p.slideCooldown = 5;
+    p.slideCooldown = 5.0;
     p.animTimer = 0;
     playSfx("slide");
 }
@@ -256,22 +264,31 @@ function clampToField(p: Player) {
 function handleOutOfBounds() {
   const b = state.ball.pos;
   const inGoalY = b.y > GOAL_TOP_Y && b.y < GOAL_BOTTOM_Y;
-  const BOUNCE = 0.6;
 
-  if (b.x < FIELD_LEFT && !inGoalY) {
-      b.x = FIELD_LEFT;
-      state.ball.vel.x = Math.abs(state.ball.vel.x) * BOUNCE;
-  } else if (b.x > FIELD_RIGHT && !inGoalY) {
-      b.x = FIELD_RIGHT;
-      state.ball.vel.x = -Math.abs(state.ball.vel.x) * BOUNCE;
-  }
+  const outSide = (b.x < FIELD_LEFT || b.x > FIELD_RIGHT) && !inGoalY;
+  const outEnd = b.y < FIELD_TOP || b.y > FIELD_BOTTOM;
+  if (!outSide && !outEnd) return;
 
-  if (b.y < FIELD_TOP) {
-      b.y = FIELD_TOP;
-      state.ball.vel.y = Math.abs(state.ball.vel.y) * BOUNCE;
-  } else if (b.y > FIELD_BOTTOM) {
-      b.y = FIELD_BOTTOM;
-      state.ball.vel.y = -Math.abs(state.ball.vel.y) * BOUNCE;
+  b.x = Math.max(FIELD_LEFT + 1, Math.min(FIELD_RIGHT - 1, b.x));
+  b.y = Math.max(FIELD_TOP + 1, Math.min(FIELD_BOTTOM - 1, b.y));
+  state.ball.vel = v2(0, 0);
+  state.ball.z = 1;
+
+  // Award possession to nearest player on the team that did NOT last touch the ball
+  const lastTeam = state.ball.lastTouchTeam;
+  const oppTeam: 'BLUE' | 'RED' | null = lastTeam === 'BLUE' ? 'RED' : lastTeam === 'RED' ? 'BLUE' : null;
+  let restartId: number | null = null;
+  let minDist = Infinity;
+  state.players.forEach(pl => {
+    if (oppTeam !== null && pl.team !== oppTeam) return;
+    const d = vDist(pl.pos, state.ball.pos);
+    if (d < minDist) { minDist = d; restartId = pl.id; }
+  });
+  if (restartId !== null) {
+    const pl = state.players[restartId];
+    state.ball.lastTouchedBy = pl.id;
+    state.ball.lastTouchTeam = pl.team;
+    pl.lastTouchTime = Date.now();
   }
 }
 
@@ -297,7 +314,7 @@ export function executePass(p: Player) {
                     }
                 }
                 
-                const openLaneScore = 1 - ((120 - minEnemyDist) / 120);
+                const openLaneScore = Math.min(1, Math.max(0, minEnemyDist / 120));
                 const score = openLaneScore - 0.5 * (dist / 1280);
                 if (score > bestScore) {
                     bestScore = score;
@@ -353,9 +370,10 @@ export function executeShoot(p: Player) {
     const speed = p.isSprinting ? 540 : 480;
     let aimDir = vNorm(vSub(bestPoint, p.pos));
     
-    // Add inaccuracy
+    // Add inaccuracy — linear from ±2° at 200px to ±8° at 600px
     const dist = vDist(p.pos, bestPoint);
-    const spread = dist < 200 ? 0.035 : 0.14; // radians
+    const t = Math.min(1, Math.max(0, (dist - 200) / 400));
+    const spread = 0.035 + (0.14 - 0.035) * t; // radians
     const angle = Math.atan2(aimDir.y, aimDir.x) + (Math.random() * spread * 2 - spread);
     aimDir = v2(Math.cos(angle), Math.sin(angle));
     

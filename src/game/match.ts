@@ -98,24 +98,62 @@ export function resetPositionsForKickoff(kickingTeam: 'BLUE' | 'RED') {
   state.ball.z = 1;
   state.ball.lastTouchedBy = null;
   state.ball.trail = [];
-  
-  const bluePositions = [{x: 580, y: 360}, {x: 400, y: 200}, {x: 400, y: 520}];
-  const redPositions = [{x: 700, y: 360}, {x: 880, y: 200}, {x: 880, y: 520}];
-  
-  if (kickingTeam === 'BLUE') {
-    bluePositions[0].x = 620;
-  } else {
-    redPositions[0].x = 660;
-  }
-  
+
+  // BLUE defends LEFT goal → blue half is x < 640. RED defends RIGHT → red half is x > 640.
+  // For each team [0]=GK (deep, on own goal line), [1]=outfield upper, [2]=outfield lower.
+  // The kicking team's striker (one outfielder) is pushed up to the center spot, touching ball.
+
+  const blueGK    = { x: FIELD_LEFT + 30,  y: 360 };
+  const redGK     = { x: FIELD_RIGHT - 30, y: 360 };
+
+  // Default (defending) outfield: spread vertically inside own defensive half
+  const blueDefendUpper = { x: 280, y: 220 };
+  const blueDefendLower = { x: 280, y: 500 };
+  const redDefendUpper  = { x: 1000, y: 220 };
+  const redDefendLower  = { x: 1000, y: 500 };
+
+  // Attacking team formation: 1 striker on center spot, 2 wingers slightly behind
+  // (still in own half) spread vertically.
+  const blueAttackStriker = { x: 620, y: 360 }; // just behind ball, touching it
+  const blueAttackWingerU = { x: 480, y: 240 };
+  const blueAttackWingerL = { x: 480, y: 480 };
+  const redAttackStriker  = { x: 660, y: 360 };
+  const redAttackWingerU  = { x: 800, y: 240 };
+  const redAttackWingerL  = { x: 800, y: 480 };
+
+  const bluePositions = kickingTeam === 'BLUE'
+    ? [blueGK, blueAttackStriker, blueAttackWingerU, blueAttackWingerL]
+    : [blueGK, blueDefendUpper, blueDefendLower];
+  const redPositions = kickingTeam === 'RED'
+    ? [redGK, redAttackStriker, redAttackWingerU, redAttackWingerL]
+    : [redGK, redDefendUpper, redDefendLower];
+
+  // 3-player rosters: drop the extra winger from the attacking layouts
+  if (bluePositions.length > 3) bluePositions.length = 3;
+  if (redPositions.length > 3) redPositions.length = 3;
+
   const bluePlayers = state.players.filter(p => p.team === 'BLUE');
   const redPlayers  = state.players.filter(p => p.team === 'RED');
 
   state.players.forEach(p => { p.vel = {x: 0, y: 0}; p.state = 'IDLE'; p.isSprinting = false; });
-  bluePlayers.forEach((p, i) => { p.pos = {...bluePositions[i]}; p.facing = {x: 1, y: 0}; });
-  redPlayers.forEach((p, i)  => { p.pos = {...redPositions[i]};  p.facing = {x: -1, y: 0}; });
-  
-  if (state.players[0].team === 'BLUE') {
-    state.humanPlayerId = 0;
+  bluePlayers.forEach((p, i) => {
+    p.pos = { ...bluePositions[i] };
+    p.facing = { x: 1, y: 0 };
+    // First BLUE slot is goalkeeper — lock the role so AI uses GK behavior.
+    if (i === 0) p.role = 'GOALKEEPER';
+  });
+  redPlayers.forEach((p, i) => {
+    p.pos = { ...redPositions[i] };
+    p.facing = { x: -1, y: 0 };
+    if (i === 0) p.role = 'GOALKEEPER';
+  });
+
+  // Human controls the first BLUE outfielder (slot 1), never the keeper.
+  const humanCandidate = bluePlayers[1] ?? bluePlayers[0];
+  if (humanCandidate) {
+    bluePlayers.forEach(p => { p.isHuman = false; });
+    redPlayers.forEach(p => { p.isHuman = false; });
+    humanCandidate.isHuman = true;
+    state.humanPlayerId = humanCandidate.id;
   }
 }
