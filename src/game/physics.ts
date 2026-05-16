@@ -143,8 +143,9 @@ export function updatePhysics(dt: number, input: InputCommand) {
     const distToBall = vDist(p.pos, state.ball.pos);
     const relSpeed = vLen(vSub(p.vel, state.ball.vel));
 
-    // Free ball pickup — only when ball has no owner (magnet: 20px + relSpeed < 60)
-    if (!ballOwned && distToBall < 20 && relSpeed < 60 && state.ball.z <= 1.05) {
+    // Free ball pickup — only when ball has no owner (magnet: 22px + relSpeed < 60).
+    // 22px (not 20) so a player positioned exactly at the 20px kickoff spot can grab.
+    if (!ballOwned && distToBall <= 22 && relSpeed < 60 && state.ball.z <= 1.05) {
       if (p.touchWindowTimer > 0) {
         p.touchWindowTimer -= dt;
       } else {
@@ -159,14 +160,14 @@ export function updatePhysics(dt: number, input: InputCommand) {
           state.humanPlayerId = p.id;
         }
       }
-    } else if (distToBall > 22 || relSpeed >= 60 || ballOwned) {
+    } else if (distToBall > 24 || relSpeed >= 60 || ballOwned) {
       p.touchWindowTimer = 0.15;
     }
 
     // Slide-tackle: only a SLIDING player can steal from the carrier
     if (p.state === 'SLIDE' && ballOwned && state.ball.lastTouchedBy !== p.id) {
       const carrier = state.players.find(x => x.id === state.ball.lastTouchedBy);
-      if (carrier && carrier.team !== p.team && vDist(p.pos, carrier.pos) < 38) {
+      if (carrier && carrier.team !== p.team && vDist(p.pos, carrier.pos) < 44) {
         state.ball.lastTouchedBy = null;
         const knockDir = vNorm(vSub(carrier.pos, p.pos));
         state.ball.vel = vMul(knockDir, 280);
@@ -221,9 +222,18 @@ function applyPlayerMovement(p: Player, moveDir: Vector2, sprintInput: boolean, 
 
 export function tryStartSlide(p: Player, moveDir: Vector2) {
     if (p.slideCooldown > 0 || p.state === 'SLIDE') return;
-    // Carrier cannot slide (slide is for stealing)
     if (state.ball.lastTouchedBy === p.id) return;
     let dir = vLenSq(moveDir) > 0 ? vNorm(moveDir) : (vLenSq(p.facing) > 0 ? vNorm(p.facing) : v2(1, 0));
+    // Auto-aim toward enemy carrier if within tackle range — slide is for stealing
+    const carrierId = state.ball.lastTouchedBy;
+    if (carrierId !== null) {
+      const carrier = state.players[carrierId];
+      if (carrier && carrier.team !== p.team) {
+        const lead = vAdd(carrier.pos, vMul(carrier.vel, 0.18));
+        const toCarrier = vSub(lead, p.pos);
+        if (vLenSq(toCarrier) < 110 * 110) dir = vNorm(toCarrier);
+      }
+    }
     p.slideDir = dir;
     p.facing = dir;
     p.vel = vMul(dir, 360);

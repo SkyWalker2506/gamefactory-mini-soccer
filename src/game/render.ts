@@ -83,7 +83,11 @@ export function render(ctx: CanvasRenderingContext2D) {
   entities.forEach(e => {
     if (e.type === 'player') {
       const p = e.obj;
-      // Slide sprite (8-frame sheet, side-view, faces +X)
+      // Slide sprite (8-frame sheet, side-view). Source frames are tall+narrow
+      // (~160-235w x 941-1024h) — the sheet's long axis (vertical) corresponds
+      // to the slide's motion axis. We map source-height -> world-length and
+      // source-width -> world-thickness, then rotate to match facing so slides
+      // read as a horizontal lying-down pose regardless of slide direction.
       if (p.state === 'SLIDE') {
         const frames = p.team === 'BLUE' ? assets.slideBlue : assets.slideRed;
         if (frames && frames.length > 0) {
@@ -91,18 +95,34 @@ export function render(ctx: CanvasRenderingContext2D) {
           const progress = Math.min(1, p.animTimer / 0.5);
           const idx = Math.min(frames.length - 1, Math.floor(progress * frames.length));
           const sprite = frames[idx];
-          // Slide frames are very tall+narrow (~1024h x ~200w). Use shorter target
-          // height so visual footprint matches running players, and derive width
-          // from native aspect ratio to avoid horizontal stretch.
-          const targetH = 110;
-          const dh = targetH;
-          const dw = dh * (sprite.width / sprite.height);
-          // Use facing.x to determine flip; for pure up/down slides default to right
-          const flipX = p.facing.x < -0.01;
+          // World-space slide size. Character body occupies only ~40% of the
+          // source frame height (lots of transparent padding above the head), so
+          // we render a larger total length (~360) to make the visible body
+          // come out ~140-160px along the motion axis. Thickness derives from
+          // the native frame aspect so proportions stay correct.
+          const desiredLength = 360;
+          const desiredThickness = desiredLength * (sprite.width / sprite.height);
+          // Rotate canvas so source-vertical aligns with player's slide direction.
+          // Prefer slideDir (locked at slide start); fall back to facing.
+          let dx = p.slideDir.x, dy = p.slideDir.y;
+          if (Math.hypot(dx, dy) < 0.01) { dx = p.facing.x; dy = p.facing.y; }
+          if (Math.hypot(dx, dy) < 0.01) { dx = 1; dy = 0; }
+          // Source's +Y (down the PNG) should map to slide forward direction.
+          // Default canvas: +X right, +Y down. We rotate so canvas +Y == (dx,dy).
+          // Rotation angle for canvas: atan2(dy,dx) rotates +X to forward, so
+          // we add +PI/2 (or equivalently atan2(-dx, dy)) to put +Y on forward.
+          const angle = Math.atan2(dy, dx) - Math.PI / 2;
           ctx.save();
-          ctx.translate(p.pos.x, p.pos.y - 6);
-          if (flipX) ctx.scale(-1, 1);
-          ctx.drawImage(sprite, -dw / 2, -dh / 2, dw, dh);
+          ctx.translate(p.pos.x, p.pos.y);
+          ctx.rotate(angle);
+          // After rotate: source w (thickness) -> canvas X, source h (length) -> canvas Y.
+          ctx.drawImage(
+            sprite,
+            -desiredThickness / 2,
+            -desiredLength / 2,
+            desiredThickness,
+            desiredLength
+          );
           ctx.restore();
         } else {
           // Fallback: streak under player to show motion

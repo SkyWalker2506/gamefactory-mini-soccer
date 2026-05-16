@@ -135,7 +135,16 @@ export function resetPositionsForKickoff(kickingTeam: 'BLUE' | 'RED') {
   const bluePlayers = state.players.filter(p => p.team === 'BLUE');
   const redPlayers  = state.players.filter(p => p.team === 'RED');
 
-  state.players.forEach(p => { p.vel = {x: 0, y: 0}; p.state = 'IDLE'; p.isSprinting = false; });
+  state.players.forEach(p => {
+    p.vel = {x: 0, y: 0};
+    p.state = 'IDLE';
+    p.isSprinting = false;
+    // Clear stale pickup-debounce so the striker at the center spot can grab
+    // the free ball immediately on kickoff (otherwise a leftover 0.15s window
+    // from before the goal blocks possession and play deadlocks).
+    p.touchWindowTimer = 0;
+    p.slideTimer = 0;
+  });
   bluePlayers.forEach((p, i) => {
     p.pos = { ...bluePositions[i] };
     p.facing = { x: 1, y: 0 };
